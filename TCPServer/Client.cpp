@@ -41,7 +41,6 @@ void Client::ScheduleRead()
     if (!IsConnected())
         return;
 
-
     m_Socket.async_read_some(boost::asio::buffer(m_ReadBuffer.data(), m_ReadBuffer.size()),
         [this](const boost::system::error_code& ec, std::size_t bytesRead)
         {
@@ -55,13 +54,26 @@ void Client::ScheduleRead()
 
             if (ec)
             {
-                printf("Error reading from Client : %s", ec.message().c_str());
+                m_Server->OnDataReceivedError(this, ec);
                 return;
             }
 
             m_Server->OnDataReceived(this, bytesRead);
 
             ScheduleRead();
+        });
+}
+
+// public
+void Client::ScheduleWrite(const std::vector<uint8_t>& buffer, std::size_t bytesToWrite)
+{
+    if (!IsConnected())
+        return;
+
+    m_Socket.async_write_some(boost::asio::buffer(buffer.data(), bytesToWrite),
+        [this](const boost::system::error_code& ec, std::size_t bytesWritten)
+        {
+            printf("\nSent to %s", GetInfoString().c_str());
         });
 }
 

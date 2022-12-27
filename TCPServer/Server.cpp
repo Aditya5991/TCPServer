@@ -9,6 +9,8 @@
 
 using boost::asio::ip::tcp;
 
+#define CRLF "\r\n"
+
 BEGIN_NAMESPACE_TCP
 
 // public
@@ -29,18 +31,11 @@ Server::~Server()
 // public
 bool Server::Start()
 {
-    // order is important, as the context needs something to do, else it will end the context thread.
+    // order is important, as the context needs some work to do, else it will end the context thread.
     WaitToAcceptNewConnection();
     m_ContextThread = std::thread([this]()
         {
-            try 
-            {
                 IOContext().run(); 
-            }
-            catch (std::exception& e) 
-            {
-                printf("\n%s", e.what());
-            }
         });
 
     return false;
@@ -65,6 +60,21 @@ void Server::OnDataReceived(Client* client, std::size_t bytesRead)
 
     std::string data(buffer.begin(), buffer.begin() + bytesRead);
     printf("\nFrom %s : %s", clientInfo.c_str(), data.c_str());
+
+    if (data == "time" CRLF)
+    {
+        std::string temp = "requested time" CRLF;
+        std::vector<uint8_t> toWrite(temp.begin(), temp.end());
+        Write(client, toWrite);
+    }
+
+}
+
+// public
+void Server::OnDataReceivedError(Client* client, const boost::system::error_code& ec)
+{
+    printf("Error reading from Client : %s", ec.message().c_str());
+    OnDisconnect(client);
 }
 
 // public
@@ -117,6 +127,18 @@ void Server::WaitToAcceptNewConnection()
     {
         printf("\n%s", e.what());
     }
+}
+
+// public
+void Server::Write(Client* client, const std::vector<uint8_t>& buffer)
+{
+    Write(client, buffer, buffer.size());
+}
+
+// public
+void Server::Write(Client* client, const std::vector<uint8_t>& buffer, std::size_t numBytesToWrite)
+{
+    client->ScheduleWrite(buffer, numBytesToWrite);
 }
 
 

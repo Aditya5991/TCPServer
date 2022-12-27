@@ -22,8 +22,12 @@ public:
     bool Start();
     bool Stop();
 
-    void OnDataReceived(Client* client, std::size_t bytesRead);
-    void OnDisconnect(Client* client);
+    virtual void OnDataReceived(Client* client, std::size_t bytesRead);
+    virtual void OnDataReceivedError(Client* client, const boost::system::error_code& ec);
+    virtual void OnDisconnect(Client* client);
+
+    void Write(Client* client, const std::vector<uint8_t>& buffer);
+    void Write(Client* client, const std::vector<uint8_t>& buffer, std::size_t numBytesToWrite);
 
     std::size_t GetNumClients() const { return m_Clients.size(); }
     int GetPort() const { return m_Port; }
