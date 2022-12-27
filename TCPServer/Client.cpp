@@ -1,17 +1,32 @@
 #include "Client.h"
+#include "Server.h"
 
 using boost::asio::ip::tcp;
 
 BEGIN_NAMESPACE_TCP
 
-// public
+// private
 Client::Client(
-    boost::asio::io_context& context, 
-    tcp::socket socket)
+    Server* server,
+    tcp::socket socket,
+    uint32_t id)
     : m_ReadBuffer(1 * 1024)
-    , m_IOContext(context)
+    , m_Server(server)
     , m_Socket(std::move(socket))
+    , m_ID(id)
 {
+}
+
+// public
+Client::~Client()
+{
+    m_Socket.close();
+}
+
+// public static
+Client* Client::Create(Server* server, tcp::socket socket, uint32_t id)
+{
+    return new Client(server, std::move(socket), id);
 }
 
 // public
@@ -23,12 +38,18 @@ bool Client::IsConnected() const
 // public
 void Client::ScheduleRead()
 {
+    if (!IsConnected())
+        return;
+
+
     m_Socket.async_read_some(boost::asio::buffer(m_ReadBuffer.data(), m_ReadBuffer.size()),
-        [this](const boost::system::error_code& ec, std::size_t bytesRead) 
+        [this](const boost::system::error_code& ec, std::size_t bytesRead)
         {
+            std::size_t availableBytes = m_Socket.available();
+
             if (ec == boost::asio::error::eof)
             {
-                printf("\n%s Disconnected...", GetInfoString().c_str());
+                m_Server->OnDisconnect(this);
                 return;
             }
 
@@ -38,8 +59,7 @@ void Client::ScheduleRead()
                 return;
             }
 
-            std::string data(m_ReadBuffer.begin(), m_ReadBuffer.begin() + bytesRead);
-            printf("\nFrom %s : %s", GetInfoString().c_str(), data.c_str());
+            m_Server->OnDataReceived(this, bytesRead);
 
             ScheduleRead();
         });
@@ -51,7 +71,13 @@ std::string Client::GetInfoString() const
     std::string ip = m_Socket.remote_endpoint().address().to_string();
     int port = m_Socket.remote_endpoint().port();
 
-    return std::format("{}({})", ip, port);
+    return std::format("[{}] {}({})", GetID(), ip, port);
+}
+
+// public
+const std::vector<uint8_t>& Client::GetReadBuffer() const
+{
+    return m_ReadBuffer;
 }
 
 
