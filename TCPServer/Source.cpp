@@ -10,9 +10,8 @@ int tryAsync()
 {
     try 
     {
-        std::shared_ptr<TCP::Server> server = std::make_shared<TCP::Server>(8080);
-        server->Start();
-        auto count = server.use_count();
+        TCP::Server server(8080, 2);
+        server.Start();
         return 0;
     }
     catch (std::exception& e)

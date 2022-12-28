@@ -19,6 +19,8 @@ public:
 
     bool IsConnected() const;
     void ScheduleRead();
+
+    void Write(const std::vector<uint8_t>& buffer, std::size_t bytesToWrite);
     void ScheduleWrite(const std::vector<uint8_t>& buffer, std::size_t bytesToWrite);
 
     const std::vector<uint8_t>& GetReadBuffer() const;

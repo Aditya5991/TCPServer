@@ -14,8 +14,9 @@ using boost::asio::ip::tcp;
 BEGIN_NAMESPACE_TCP
 
 // public
-Server::Server(int port)
-    : m_Port(port)
+Server::Server(int port, uint32_t maxClientsAllowed)
+    : m_MaxClientsAllowed(maxClientsAllowed)
+    , m_Port(port)
     , m_IOContext()
     , m_Acceptor(IOContext(), tcp::endpoint(tcp::v4(), port))
     , m_NewClientID(1)
@@ -60,14 +61,6 @@ void Server::OnDataReceived(Client* client, std::size_t bytesRead)
 
     std::string data(buffer.begin(), buffer.begin() + bytesRead);
     printf("\nFrom %s : %s", clientInfo.c_str(), data.c_str());
-
-    if (data == "time" CRLF)
-    {
-        std::string temp = "requested time" CRLF;
-        std::vector<uint8_t> toWrite(temp.begin(), temp.end());
-        Write(client, toWrite);
-    }
-
 }
 
 // public
@@ -95,6 +88,33 @@ void Server::OnDisconnect(Client* client)
     }
 }
 
+// public virtual
+bool Server::OnClientConnected(tcp::socket socket)
+{
+    Client* newClient = Client::Create(this, std::move(socket), m_NewClientID);
+    
+    if (m_Clients.size() >= m_MaxClientsAllowed)
+    {
+        printf("\nMax Clients Allowed Limit Reached!");
+        std::string message = "The Server has reached the Maximum number of allowed Clients Limit!\nYou will be disconnected!";
+        Write(newClient, message);
+        delete newClient;
+        return false;
+    }
+
+    printf("\nClient Connected : %s", newClient->GetInfoString().c_str());
+
+    m_MutexClients.lock();
+    m_Clients.insert(std::make_pair(m_NewClientID, newClient));
+    m_MutexClients.unlock();
+
+    ++m_NewClientID;
+
+    newClient->ScheduleRead();
+
+    return true;
+}
+
 //private
 void Server::WaitToAcceptNewConnection()
 {
@@ -109,16 +129,7 @@ void Server::WaitToAcceptNewConnection()
                     return;
                 }
 
-                Client* newClient = Client::Create(this, std::move(socket), m_NewClientID);
-                printf("\nClient Connected : %s", newClient->GetInfoString().c_str());
-
-                m_MutexClients.lock();
-                m_Clients.insert(std::make_pair(m_NewClientID, newClient));
-                m_MutexClients.unlock();
-
-                ++m_NewClientID;
-
-                newClient->ScheduleRead();
+                OnClientConnected(std::move(socket));
 
                 WaitToAcceptNewConnection();
             });
@@ -129,6 +140,14 @@ void Server::WaitToAcceptNewConnection()
     }
 }
 
+
+// public
+void Server::Write(Client* client, const std::string& str)
+{
+    std::vector<uint8_t> buffer(str.begin(), str.end());
+    Write(client, buffer);
+}
+
 // public
 void Server::Write(Client* client, const std::vector<uint8_t>& buffer)
 {
@@ -137,6 +156,25 @@ void Server::Write(Client* client, const std::vector<uint8_t>& buffer)
 
 // public
 void Server::Write(Client* client, const std::vector<uint8_t>& buffer, std::size_t numBytesToWrite)
+{
+    client->Write(buffer, numBytesToWrite);
+}
+
+// public
+void Server::AsyncWrite(Client* client, const std::string& str)
+{
+    std::vector<uint8_t> buffer(str.begin(), str.end());
+    AsyncWrite(client, buffer);
+}
+
+// public
+void Server::AsyncWrite(Client* client, const std::vector<uint8_t>& buffer)
+{
+    AsyncWrite(client, buffer, buffer.size());
+}
+
+// public
+void Server::AsyncWrite(Client* client, const std::vector<uint8_t>& buffer, std::size_t numBytesToWrite)
 {
     client->ScheduleWrite(buffer, numBytesToWrite);
 }

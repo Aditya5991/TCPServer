@@ -44,8 +44,6 @@ void Client::ScheduleRead()
     m_Socket.async_read_some(boost::asio::buffer(m_ReadBuffer.data(), m_ReadBuffer.size()),
         [this](const boost::system::error_code& ec, std::size_t bytesRead)
         {
-            std::size_t availableBytes = m_Socket.available();
-
             if (ec == boost::asio::error::eof)
             {
                 m_Server->OnDisconnect(this);
@@ -62,6 +60,22 @@ void Client::ScheduleRead()
 
             ScheduleRead();
         });
+}
+
+// public
+void Client::Write(const std::vector<uint8_t>& buffer, std::size_t bytesToWrite)
+{
+    if (!IsConnected())
+        return;
+
+    try 
+    {
+        m_Socket.write_some(boost::asio::buffer(buffer));
+    }
+    catch (std::exception& e)
+    {
+        printf("\n%s", e.what());
+    }
 }
 
 // public
