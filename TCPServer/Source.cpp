@@ -22,7 +22,7 @@ public:
     {
     }
     
-    virtual bool OnClientConnected(TCP::Client* newClient) override
+    virtual bool OnClientConnected(const TCP::Client* newClient) override
     {
         if (newClient == nullptr)
             return false;
@@ -36,7 +36,7 @@ public:
         return true;
     }
 
-    virtual void OnDataReceived(TCP::Client* client) override
+    virtual void OnDataReceived(const TCP::Client* client) override
     {
         const auto& buffer = client->GetReadBuffer();
         std::size_t bytesRead = client->GetBytesRead();

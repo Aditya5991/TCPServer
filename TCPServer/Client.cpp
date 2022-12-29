@@ -45,12 +45,14 @@ void Client::ScheduleRead()
     m_Socket.async_read_some(boost::asio::buffer(m_ReadBuffer.data(), m_ReadBuffer.size()),
         [this](const boost::system::error_code& ec, std::size_t bytesRead)
         {
+            // check if the client disconnected from the server.
             if (ec == boost::asio::error::eof)
             {
                 m_Server->OnDisconnect(this);
                 return;
             }
 
+            // check if any errorneous data(according to boost::asio) is received from the client.
             if (ec)
             {
                 m_Server->OnDataReceivedError(this, ec);
@@ -60,6 +62,7 @@ void Client::ScheduleRead()
             m_BytesRead = bytesRead;
             m_Server->OnDataReceived(this);
 
+            /* Assign the context with another read task. */
             ScheduleRead();
         });
 }
@@ -72,7 +75,7 @@ void Client::Write(const std::vector<uint8_t>& buffer, std::size_t bytesToWrite)
 
     try 
     {
-        m_Socket.write_some(boost::asio::buffer(buffer));
+        m_Socket.write_some(boost::asio::buffer(buffer.data(), bytesToWrite));
     }
     catch (std::exception& e)
     {

@@ -36,7 +36,7 @@ bool Server::Start()
     WaitToAcceptNewConnection();
     m_ContextThread = std::thread([this]()
         {
-                IOContext().run(); 
+            IOContext().run(); 
         });
 
     return false;
@@ -54,25 +54,16 @@ bool Server::Stop()
 }
 
 // public
-void Server::OnDataReceived(Client* client)
-{
-    const auto& buffer = client->GetReadBuffer();
-    std::size_t bytesRead = client->GetBytesRead();
-    const auto& clientInfo = client->GetInfoString();
-
-    std::string data(buffer.begin(), buffer.begin() + bytesRead);
-    printf("\nFrom %s : %s", clientInfo.c_str(), data.c_str());
-}
-
-// public
-void Server::OnDataReceivedError(Client* client, const boost::system::error_code& ec)
+void Server::OnDataReceivedError(const Client* client, const boost::system::error_code& ec)
 {
     printf("Error reading from Client : %s", ec.message().c_str());
+
+    /* directly disconnect the connection of this client */
     OnDisconnect(client);
 }
 
 // public
-void Server::OnDisconnect(Client* client)
+void Server::OnDisconnect(const Client* client)
 {
     const auto& clientInfo = client->GetInfoString();
     printf("\n%s Disconnected...", clientInfo.c_str());
@@ -90,36 +81,41 @@ void Server::OnDisconnect(Client* client)
 }
 
 // public virtual
-bool Server::OnClientConnected(Client* client)
-{
-    return false;
-}
-
-// public virtual
 bool Server::OnClientConnected(tcp::socket socket)
 {
-    Client* newClient = Client::Create(this, std::move(socket), m_NewClientID);
-    
+    // check if max client limit is reached
     if (m_Clients.size() >= m_MaxClientsAllowed)
     {
         printf("\nMax Clients Allowed Limit Reached!");
         std::string message = "The Server has reached the Maximum number of allowed Clients Limit!\nYou will be disconnected!";
-        Write(newClient, message);
+        Write(socket, message);
+        return false;
+    }
+
+    // first level of checking is done, so we can create a client handler object.
+    Client* newClient = Client::Create(this, std::move(socket), m_NewClientID);
+
+    // will call the derived classes func, for further checking.
+    if (!OnClientConnected(newClient))
+    {
+        printf("\n Connection refused to : %s", newClient->GetInfoString().c_str());
         delete newClient;
         return false;
     }
 
     printf("\nClient Connected : %s", newClient->GetInfoString().c_str());
 
+    // add the new client to the clients map.
     m_MutexClients.lock();
     m_Clients.insert(std::make_pair(m_NewClientID, newClient));
     m_MutexClients.unlock();
 
     ++m_NewClientID;
 
+    // start an async task for reading data from the newClient
     newClient->ScheduleRead();
 
-    return OnClientConnected(newClient);
+    return true;
 }
 
 //private
@@ -138,6 +134,7 @@ void Server::WaitToAcceptNewConnection()
 
                 OnClientConnected(std::move(socket));
 
+                // schedule the next task to accept new connection.
                 WaitToAcceptNewConnection();
             });
     }
@@ -147,6 +144,21 @@ void Server::WaitToAcceptNewConnection()
     }
 }
 
+// public
+void Server::Write(tcp::socket& socket, const std::string& buffer)
+{
+    if (!socket.is_open())
+        return;
+
+    try
+    {
+        socket.write_some(boost::asio::buffer(buffer.data(), buffer.size()));
+    }
+    catch (std::exception& e)
+    {
+        printf("\n%s", e.what());
+    }
+}
 
 // public
 void Server::Write(Client* client, const std::string& str)
@@ -187,13 +199,13 @@ void Server::AsyncWrite(Client* client, const std::vector<uint8_t>& buffer, std:
 }
 
 // public
-void Server::MessageAllClients(const std::vector<uint8_t>& message, Client* clientToIgnore)
+void Server::MessageAllClients(const std::vector<uint8_t>& message, const Client* clientToIgnore)
 {
     MessageAllClients(message, message.size(), clientToIgnore);
 }
 
 // public
-void Server::MessageAllClients(const std::vector<uint8_t>& message, std::size_t bytesToWrite, Client* clientToIgnore)
+void Server::MessageAllClients(const std::vector<uint8_t>& message, std::size_t bytesToWrite, const Client* clientToIgnore)
 {
     for (const auto [id, client] : m_Clients)
     {
@@ -207,6 +219,7 @@ void Server::MessageAllClients(const std::vector<uint8_t>& message, std::size_t 
 // public
 void Server::Wait()
 {
+    /* wait for the io_context to run out of jobs to perform */
     if (m_ContextThread.joinable())
         m_ContextThread.join();
 }
