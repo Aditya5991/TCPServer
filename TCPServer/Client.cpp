@@ -10,7 +10,8 @@ Client::Client(
     Server* server,
     tcp::socket socket,
     uint32_t id)
-    : m_ReadBuffer(1 * 1024)
+    : m_BytesRead(0)
+    , m_ReadBuffer(1 * 1024)
     , m_Server(server)
     , m_Socket(std::move(socket))
     , m_ID(id)
@@ -56,7 +57,8 @@ void Client::ScheduleRead()
                 return;
             }
 
-            m_Server->OnDataReceived(this, bytesRead);
+            m_BytesRead = bytesRead;
+            m_Server->OnDataReceived(this);
 
             ScheduleRead();
         });
@@ -87,6 +89,11 @@ void Client::ScheduleWrite(const std::vector<uint8_t>& buffer, std::size_t bytes
     m_Socket.async_write_some(boost::asio::buffer(buffer.data(), bytesToWrite),
         [this](const boost::system::error_code& ec, std::size_t bytesWritten)
         {
+            if (ec)
+            {
+                printf("\nError Writing to %s.", GetInfoString().c_str());
+                return;
+            }
             printf("\nSent to %s", GetInfoString().c_str());
         });
 }
@@ -98,12 +105,6 @@ std::string Client::GetInfoString() const
     int port = m_Socket.remote_endpoint().port();
 
     return std::format("[{}] {}({})", GetID(), ip, port);
-}
-
-// public
-const std::vector<uint8_t>& Client::GetReadBuffer() const
-{
-    return m_ReadBuffer;
 }
 
 

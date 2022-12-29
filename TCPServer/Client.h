@@ -9,7 +9,7 @@ using boost::asio::ip::tcp;
 
 class Server;
 
-class Client : std::enable_shared_from_this<Client>
+class Client
 {
 public:
     Client(const Client& rhs) = delete;
@@ -23,10 +23,11 @@ public:
     void Write(const std::vector<uint8_t>& buffer, std::size_t bytesToWrite);
     void ScheduleWrite(const std::vector<uint8_t>& buffer, std::size_t bytesToWrite);
 
-    const std::vector<uint8_t>& GetReadBuffer() const;
     std::string GetInfoString() const;
 
-    uint32_t GetID() const { return m_ID; }
+    const std::vector<uint8_t>& GetReadBuffer() const { return m_ReadBuffer; }
+    std::size_t     GetBytesRead() const { return m_BytesRead; }
+    uint32_t        GetID() const { return m_ID; }
 
     static Client* Create(Server* server, tcp::socket socket, uint32_t id);
 
@@ -35,8 +36,9 @@ private:
 
 private:
 
-    Server*                                     m_Server;
+    std::size_t                                 m_BytesRead;
     std::vector<uint8_t>                        m_ReadBuffer;
+    Server*                                     m_Server;
     tcp::socket                                 m_Socket;
     const uint32_t                              m_ID;
 };

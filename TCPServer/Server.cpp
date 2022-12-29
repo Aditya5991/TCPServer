@@ -54,9 +54,10 @@ bool Server::Stop()
 }
 
 // public
-void Server::OnDataReceived(Client* client, std::size_t bytesRead)
+void Server::OnDataReceived(Client* client)
 {
     const auto& buffer = client->GetReadBuffer();
+    std::size_t bytesRead = client->GetBytesRead();
     const auto& clientInfo = client->GetInfoString();
 
     std::string data(buffer.begin(), buffer.begin() + bytesRead);
@@ -78,14 +79,20 @@ void Server::OnDisconnect(Client* client)
 
     uint32_t id = client->GetID();
     auto iter = m_Clients.find(id);
-    if (iter != m_Clients.end())
-    {
-        std::lock_guard guard(m_MutexClients);
+    if (iter == m_Clients.end())
+        return;
+     
+    // remove the client from our clients map
+    std::lock_guard guard(m_MutexClients);
+    delete iter->second;
+    iter->second = nullptr;
+    m_Clients.erase(id);
+}
 
-        delete iter->second;
-        iter->second = nullptr;
-        m_Clients.erase(id);
-    }
+// public virtual
+bool Server::OnClientConnected(Client* client)
+{
+    return false;
 }
 
 // public virtual
@@ -112,7 +119,7 @@ bool Server::OnClientConnected(tcp::socket socket)
 
     newClient->ScheduleRead();
 
-    return true;
+    return OnClientConnected(newClient);
 }
 
 //private
@@ -179,5 +186,29 @@ void Server::AsyncWrite(Client* client, const std::vector<uint8_t>& buffer, std:
     client->ScheduleWrite(buffer, numBytesToWrite);
 }
 
+// public
+void Server::MessageAllClients(const std::vector<uint8_t>& message, Client* clientToIgnore)
+{
+    MessageAllClients(message, message.size(), clientToIgnore);
+}
+
+// public
+void Server::MessageAllClients(const std::vector<uint8_t>& message, std::size_t bytesToWrite, Client* clientToIgnore)
+{
+    for (const auto [id, client] : m_Clients)
+    {
+        if (clientToIgnore != nullptr && clientToIgnore->GetID() == id)
+            continue;
+
+        client->ScheduleWrite(message, bytesToWrite);
+    }
+}
+
+// public
+void Server::Wait()
+{
+    if (m_ContextThread.joinable())
+        m_ContextThread.join();
+}
 
 END_NAMESPACE_TCP

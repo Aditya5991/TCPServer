@@ -14,20 +14,25 @@ using boost::asio::ip::tcp;
 
 class Client;
 
-class Server : std::enable_shared_from_this<Server>
+class Server
 {
 public:
 
     Server(int port, uint32_t maxClientsAllowed = -1);
-    ~Server();
+    virtual ~Server();
 
     bool Start();
     bool Stop();
 
-    virtual bool OnClientConnected(tcp::socket socket);
-    virtual void OnDataReceived(Client* client, std::size_t bytesRead);
+    virtual bool OnClientConnected(Client* client);
+    virtual void OnDataReceived(Client* client);
     virtual void OnDataReceivedError(Client* client, const boost::system::error_code& ec);
-    virtual void OnDisconnect(Client* client);
+    
+    bool OnClientConnected(tcp::socket socket);
+    void OnDisconnect(Client* client);
+
+    void MessageAllClients(const std::vector<uint8_t>& message, Client* clientToIgnore = nullptr);
+    void MessageAllClients(const std::vector<uint8_t>& message, std::size_t bytesToWrite, Client* clientToIgnore = nullptr);
 
     void Write(Client* client, const std::string& buffer);
     void Write(Client* client, const std::vector<uint8_t>& buffer);
@@ -36,6 +41,8 @@ public:
     void AsyncWrite(Client* client, const std::string& buffer);
     void AsyncWrite(Client* client, const std::vector<uint8_t>& buffer);
     void AsyncWrite(Client* client, const std::vector<uint8_t>& buffer, std::size_t numBytesToWrite);
+
+    void Wait();
 
     std::size_t GetNumClients() const { return m_Clients.size(); }
     int GetPort() const { return m_Port; }
