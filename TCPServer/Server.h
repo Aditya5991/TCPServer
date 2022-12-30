@@ -84,7 +84,7 @@ public:
     * @params [in] client
     *       Pointer to the client handler object that disconnected from the server.
     */
-    void OnDisconnect(const Client* client);
+    virtual void OnClientDisconnected(const Client* client);
 
     /**
     * This function can be used to send a message to all the clients that are connected to this server.

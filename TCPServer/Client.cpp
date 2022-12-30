@@ -48,7 +48,7 @@ void Client::ScheduleRead()
             // check if the client disconnected from the server.
             if (ec == boost::asio::error::eof)
             {
-                m_Server->OnDisconnect(this);
+                m_Server->OnClientDisconnected(this);
                 return;
             }
 

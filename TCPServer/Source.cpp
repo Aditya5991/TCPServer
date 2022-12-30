@@ -46,6 +46,17 @@ public:
         printf("\nFrom %s : %s", clientInfo.c_str(), data.c_str());
     }
 
+    virtual void OnClientDisconnected(const TCP::Client* client) override
+    {
+        const auto& clientInfo = client->GetInfoString();
+        std::string message = std::format("{} Disconnected..." CRLF, clientInfo);
+        std::vector<uint8_t> buffer(message.begin(), message.end());
+
+        MessageAllClients(buffer, client);
+
+        base::OnClientDisconnected(client);
+    }
+
 };
 
 

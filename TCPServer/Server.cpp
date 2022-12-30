@@ -59,11 +59,11 @@ void Server::OnDataReceivedError(const Client* client, const boost::system::erro
     printf("Error reading from Client : %s", ec.message().c_str());
 
     /* directly disconnect the connection of this client */
-    OnDisconnect(client);
+    OnClientDisconnected(client);
 }
 
 // public
-void Server::OnDisconnect(const Client* client)
+void Server::OnClientDisconnected(const Client* client)
 {
     const auto& clientInfo = client->GetInfoString();
     printf("\n%s Disconnected...", clientInfo.c_str());
