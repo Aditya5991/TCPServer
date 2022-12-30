@@ -1,5 +1,5 @@
 #include "Server.h"
-#include "Client.h"
+#include "ClientHandler.h"
 #include <iostream>
 #include <vector>
 #include <array>
@@ -65,27 +65,27 @@ void Server::OnDataReceivedError(ClientID clientID, const boost::system::error_c
 // public
 void Server::OnClientDisconnected(ClientID clientID)
 {
-    Client* client = m_Clients[clientID];
-    const auto& clientInfo = client->GetInfoString();
+    ClientHandler* clientHandle = m_ClientHandlers[clientID];
+    const auto& clientInfo = clientHandle->GetInfoString();
     printf("\n%s Disconnected...", clientInfo.c_str());
 
-    uint32_t id = client->GetID();
-    auto iter = m_Clients.find(id);
-    if (iter == m_Clients.end())
+    uint32_t id = clientHandle->GetID();
+    auto iter = m_ClientHandlers.find(id);
+    if (iter == m_ClientHandlers.end())
         return;
      
     // remove the client from our clients map
     std::lock_guard guard(m_MutexClients);
     delete iter->second;
     iter->second = nullptr;
-    m_Clients.erase(id);
+    m_ClientHandlers.erase(id);
 }
 
 // public virtual
 bool Server::OnClientConnected(tcp::socket socket)
 {
     // check if max client limit is reached
-    if (m_Clients.size() >= m_MaxClientsAllowed)
+    if (m_ClientHandlers.size() >= m_MaxClientsAllowed)
     {
         printf("\nMax Clients Allowed Limit Reached!");
         std::string message = "The Server has reached the Maximum number of allowed Clients Limit!\nYou will be disconnected!";
@@ -94,32 +94,32 @@ bool Server::OnClientConnected(tcp::socket socket)
     }
 
     // first level of checking is done, so we can create a client handler object.
-    Client* newClient = Client::Create(this, std::move(socket), m_NewClientID);
+    ClientHandler* newClientHandle = ClientHandler::Create(this, std::move(socket), m_NewClientID);
 
-    printf("\nClient Connected : %s", newClient->GetInfoString().c_str());
+    printf("\nClient Connected : %s", newClientHandle->GetInfoString().c_str());
 
     // add the new client to the clients map.
     m_MutexClients.lock();
-    m_Clients.insert(std::make_pair(m_NewClientID, newClient));
+    m_ClientHandlers.insert(std::make_pair(m_NewClientID, newClientHandle));
     m_MutexClients.unlock();
 
     // will call the derived classes func, for further checking.
-    if (!OnClientConnected(newClient->GetID()))
+    if (!OnClientConnected(newClientHandle->GetID()))
     {
         // remove the new client from the clients map.
         m_MutexClients.lock();
-        m_Clients.erase(m_NewClientID);
+        m_ClientHandlers.erase(m_NewClientID);
         m_MutexClients.unlock();
 
-        printf("\n Connection refused to : %s", newClient->GetInfoString().c_str());
-        delete newClient;
+        printf("\n Connection refused to : %s", newClientHandle->GetInfoString().c_str());
+        delete newClientHandle;
         return false;
     }
 
     ++m_NewClientID;
 
     // start an async task for reading data from the newClient
-    newClient->ScheduleRead();
+    newClientHandle->ScheduleRead();
 
     return true;
 }
@@ -182,8 +182,8 @@ void Server::Write(ClientID ID, const std::vector<uint8_t>& buffer)
 // public
 void Server::Write(ClientID ID, const std::vector<uint8_t>& buffer, std::size_t numBytesToWrite)
 {
-    Client* client = m_Clients[ID];
-    client->Write(buffer, numBytesToWrite);
+    ClientHandler* clientHandle = m_ClientHandlers[ID];
+    clientHandle->Write(buffer, numBytesToWrite);
 }
 
 // public
@@ -202,14 +202,14 @@ void Server::AsyncWrite(ClientID ID, const std::vector<uint8_t>& buffer)
 // public
 void Server::AsyncWrite(ClientID ID, const std::vector<uint8_t>& buffer, std::size_t numBytesToWrite)
 {
-    Client* client = m_Clients[ID];
+    ClientHandler* client = m_ClientHandlers[ID];
     client->ScheduleWrite(buffer, numBytesToWrite);
 }
 
 // public
 void Server::MessageClient(ClientID ID, const std::vector<uint8_t>& buffer)
 {
-    Client* client = m_Clients[ID];
+    ClientHandler* client = m_ClientHandlers[ID];
     client->ScheduleWrite(buffer, buffer.size());
 }
 
@@ -222,12 +222,12 @@ void Server::MessageAllClients(const std::vector<uint8_t>& message, ClientID cli
 // public
 void Server::MessageAllClients(const std::vector<uint8_t>& message, std::size_t bytesToWrite, ClientID clientToIgnoreID)
 {
-    for (const auto [id, client] : m_Clients)
+    for (const auto [id, clientHandle] : m_ClientHandlers)
     {
         if (id == clientToIgnoreID)
             continue;
 
-        client->ScheduleWrite(message, bytesToWrite);
+        clientHandle->ScheduleWrite(message, bytesToWrite);
     }
 }
 

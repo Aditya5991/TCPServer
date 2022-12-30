@@ -130,13 +130,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Client.cpp" />
-    <ClCompile Include="IOBuffer.hpp" />
+    <ClCompile Include="ClientHandler.cpp" />
     <ClCompile Include="Source.cpp" />
     <ClCompile Include="Server.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Client.h" />
+    <ClInclude Include="ClientHandler.h" />
     <ClInclude Include="Common.h" />
     <ClInclude Include="IOBuffer.h" />
     <ClInclude Include="Server.h" />

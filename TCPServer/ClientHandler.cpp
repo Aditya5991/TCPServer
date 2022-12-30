@@ -1,4 +1,4 @@
-#include "Client.h"
+#include "ClientHandler.h"
 #include "Server.h"
 
 using boost::asio::ip::tcp;
@@ -6,7 +6,7 @@ using boost::asio::ip::tcp;
 BEGIN_NAMESPACE_TCP
 
 // private
-Client::Client(
+ClientHandler::ClientHandler(
     Server* server,
     tcp::socket socket,
     uint32_t id)
@@ -19,25 +19,25 @@ Client::Client(
 }
 
 // public
-Client::~Client()
+ClientHandler::~ClientHandler()
 {
     m_Socket.close();
 }
 
 // public static
-Client* Client::Create(Server* server, tcp::socket socket, uint32_t id)
+ClientHandler* ClientHandler::Create(Server* server, tcp::socket socket, uint32_t id)
 {
-    return new Client(server, std::move(socket), id);
+    return new ClientHandler(server, std::move(socket), id);
 }
 
 // public
-bool Client::IsConnected() const
+bool ClientHandler::IsConnected() const
 {
     return m_Socket.is_open();
 }
 
 // public
-void Client::ScheduleRead()
+void ClientHandler::ScheduleRead()
 {
     if (!IsConnected())
         return;
@@ -68,7 +68,7 @@ void Client::ScheduleRead()
 }
 
 // public
-void Client::Write(const std::vector<uint8_t>& buffer, std::size_t bytesToWrite)
+void ClientHandler::Write(const std::vector<uint8_t>& buffer, std::size_t bytesToWrite)
 {
     if (!IsConnected())
         return;
@@ -84,7 +84,7 @@ void Client::Write(const std::vector<uint8_t>& buffer, std::size_t bytesToWrite)
 }
 
 // public
-void Client::ScheduleWrite(const std::vector<uint8_t>& buffer, std::size_t bytesToWrite)
+void ClientHandler::ScheduleWrite(const std::vector<uint8_t>& buffer, std::size_t bytesToWrite)
 {
     if (!IsConnected())
         return;
@@ -102,7 +102,7 @@ void Client::ScheduleWrite(const std::vector<uint8_t>& buffer, std::size_t bytes
 }
 
 // public
-std::string Client::GetInfoString() const
+std::string ClientHandler::GetInfoString() const
 {
     std::string ip = m_Socket.remote_endpoint().address().to_string();
     int port = m_Socket.remote_endpoint().port();

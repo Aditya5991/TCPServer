@@ -1,8 +1,5 @@
 #include "Server.h"
-#include "Client.h"
-#include "IOBuffer.h"
-#include <ctime>
-#include <iostream>
+#include "ClientHandler.h"
 #include <string>
 #include <boost/asio.hpp>
 
@@ -24,10 +21,10 @@ public:
     
     virtual bool OnClientConnected(net::tcp::ClientID newClientID) override
     {
-        const net::tcp::Client* newClient = base::GetClient(newClientID);
+        const net::tcp::ClientHandler* newClientHandle = base::GetClient(newClientID);
 
         std::string newConnectionMessage 
-            = std::format("New Client Connected : {}" CRLF, newClient->GetInfoString());
+            = std::format("New Client Connected : {}" CRLF, newClientHandle->GetInfoString());
         std::vector<uint8_t> buffer(newConnectionMessage.begin(), newConnectionMessage.end());
 
         std::string IDMessage = std::format("Your ID is : {}" CRLF, newClientID);
@@ -43,11 +40,11 @@ public:
 
     virtual void OnDataReceived(net::tcp::ClientID ID) override
     {
-        const net::tcp::Client* client = base::GetClient(ID);
+        const net::tcp::ClientHandler* clientHandle = base::GetClient(ID);
 
-        const auto& buffer = client->GetReadBuffer();
-        std::size_t bytesRead = client->GetBytesRead();
-        const auto& clientInfo = client->GetInfoString();
+        const auto& buffer = clientHandle->GetReadBuffer();
+        std::size_t bytesRead = clientHandle->GetBytesRead();
+        const auto& clientInfo = clientHandle->GetInfoString();
 
         std::string message(buffer.begin(), buffer.begin() + bytesRead);
         if (message == "test\r\n")
@@ -64,9 +61,9 @@ public:
 
     virtual void OnClientDisconnected(net::tcp::ClientID ID) override
     {
-        const net::tcp::Client* client = base::GetClient(ID);
+        const net::tcp::ClientHandler* clientHandle = base::GetClient(ID);
 
-        const auto& clientInfo = client->GetInfoString();
+        const auto& clientInfo = clientHandle->GetInfoString();
         std::string message = std::format("{} Disconnected..." CRLF, clientInfo);
         std::vector<uint8_t> buffer(message.begin(), message.end());
 

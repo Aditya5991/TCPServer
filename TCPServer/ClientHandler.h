@@ -9,13 +9,13 @@ using boost::asio::ip::tcp;
 
 class Server;
 
-class Client
+class ClientHandler
 {
 public:
-    Client(const Client& rhs) = delete;
-    Client(Client&&) = delete;
+    ClientHandler(const ClientHandler& rhs) = delete;
+    ClientHandler(ClientHandler&&) = delete;
 
-    ~Client();
+    ~ClientHandler();
 
     /**
     * Checks if the socket is still open or not,
@@ -85,10 +85,10 @@ public:
     *       ID that is assigned by the server to this client.
     * 
     */
-    static Client* Create(Server* server, tcp::socket socket, uint32_t id);
+    static ClientHandler* Create(Server* server, tcp::socket socket, uint32_t id);
 
 private:
-    Client(Server* server, tcp::socket socket, uint32_t id);
+    ClientHandler(Server* server, tcp::socket socket, uint32_t id);
 
 private:
 

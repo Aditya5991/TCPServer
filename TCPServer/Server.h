@@ -14,7 +14,7 @@ using boost::asio::ip::tcp;
 
 using ClientID = std::size_t;
 
-class Client;
+class ClientHandler;
 
 class Server
 {
@@ -97,7 +97,7 @@ public:
     *       Bytes of data that needs to be sent.
     * 
     * @param [in] clientToIgnoreID
-    *       Optional param, ID of the client that we want to ignore sending message to.
+    *       Optional param, ID of the client that we want to ignore sending the message to.
     * 
     */
     void MessageAllClients(const std::vector<uint8_t>& message, ClientID ID = 0);
@@ -112,7 +112,7 @@ public:
     *       Number of bytes of write from the 'message' vector.
     * 
     * @param [in] clientToIgnore
-    *       Optional param, ID of the client that we want to ignore sending message to.
+    *       Optional param, ID of the client that we want to ignore sending the message to.
     *
     */
     void MessageAllClients(const std::vector<uint8_t>& message, std::size_t bytesToWrite, ClientID ID = 0);
@@ -208,7 +208,7 @@ public:
     /**
     * Return the number of clients currently connected to the server.
     */
-    std::size_t GetNumClients() const { return m_Clients.size(); }
+    std::size_t GetNumClients() const { return m_ClientHandlers.size(); }
 
     /**
     * Returns the port number of the server.
@@ -217,7 +217,7 @@ public:
 
 protected:
 
-    const Client* GetClient(ClientID ID) const { return m_Clients.at(ID); }
+    const ClientHandler* GetClient(ClientID ID) const { return m_ClientHandlers.at(ID); }
 
 private:
 
@@ -249,7 +249,7 @@ private:
     std::mutex                              m_MutexClients;
 
     /* Map of ClientID against the Client Handler pointer. */
-    std::unordered_map<ClientID, Client*>   m_Clients;
+    std::unordered_map<ClientID, ClientHandler*>   m_ClientHandlers;
 
     /* ID that will be assigned to the next client that will connect to the server. */
     uint32_t                                m_NewClientID;
