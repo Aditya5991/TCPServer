@@ -1,5 +1,6 @@
 #include "Server.h"
 #include "Client.h"
+#include "IOBuffer.h"
 #include <ctime>
 #include <iostream>
 #include <string>
@@ -7,11 +8,10 @@
 
 using boost::asio::ip::tcp;
 
-
-class TestServer : public TCP::Server
+class TestServer : public net::tcp::Server
 {
 public:
-    using base = TCP::Server;
+    using base = net::tcp::Server;
 
     TestServer(int port, uint32_t maxClientsAllowed = -1)
         : base(port, maxClientsAllowed)
@@ -22,9 +22,9 @@ public:
     {
     }
     
-    virtual bool OnClientConnected(TCP::ClientID newClientID) override
+    virtual bool OnClientConnected(net::tcp::ClientID newClientID) override
     {
-        const TCP::Client* newClient = base::GetClient(newClientID);
+        const net::tcp::Client* newClient = base::GetClient(newClientID);
 
         std::string newConnectionMessage 
             = std::format("New Client Connected : {}" CRLF, newClient->GetInfoString());
@@ -41,9 +41,9 @@ public:
         return true;
     }
 
-    virtual void OnDataReceived(TCP::ClientID ID) override
+    virtual void OnDataReceived(net::tcp::ClientID ID) override
     {
-        const TCP::Client* client = base::GetClient(ID);
+        const net::tcp::Client* client = base::GetClient(ID);
 
         const auto& buffer = client->GetReadBuffer();
         std::size_t bytesRead = client->GetBytesRead();
@@ -62,9 +62,9 @@ public:
         printf("\nFrom %s : %s", clientInfo.c_str(), data.c_str());
     }
 
-    virtual void OnClientDisconnected(TCP::ClientID ID) override
+    virtual void OnClientDisconnected(net::tcp::ClientID ID) override
     {
-        const TCP::Client* client = base::GetClient(ID);
+        const net::tcp::Client* client = base::GetClient(ID);
 
         const auto& clientInfo = client->GetInfoString();
         std::string message = std::format("{} Disconnected..." CRLF, clientInfo);
