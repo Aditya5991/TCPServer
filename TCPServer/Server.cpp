@@ -207,6 +207,13 @@ void Server::AsyncWrite(ClientID ID, const std::vector<uint8_t>& buffer, std::si
 }
 
 // public
+void Server::MessageClient(ClientID ID, const std::vector<uint8_t>& buffer)
+{
+    Client* client = m_Clients[ID];
+    client->ScheduleWrite(buffer, buffer.size());
+}
+
+// public
 void Server::MessageAllClients(const std::vector<uint8_t>& message, ClientID clientToIgnoreID)
 {
     MessageAllClients(message, message.size(), clientToIgnoreID);

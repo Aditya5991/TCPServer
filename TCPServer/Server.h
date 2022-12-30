@@ -88,6 +88,8 @@ public:
     */
     virtual void OnClientDisconnected(ClientID ID);
 
+    void MessageClient(ClientID ID, const std::vector<uint8_t>& buffer);
+
     /**
     * This function can be used to send a message to all the clients that are connected to this server.
     *
