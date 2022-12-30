@@ -54,17 +54,18 @@ bool Server::Stop()
 }
 
 // public
-void Server::OnDataReceivedError(const Client* client, const boost::system::error_code& ec)
+void Server::OnDataReceivedError(ClientID clientID, const boost::system::error_code& ec)
 {
     printf("Error reading from Client : %s", ec.message().c_str());
 
     /* directly disconnect the connection of this client */
-    OnClientDisconnected(client);
+    OnClientDisconnected(clientID);
 }
 
 // public
-void Server::OnClientDisconnected(const Client* client)
+void Server::OnClientDisconnected(ClientID clientID)
 {
+    Client* client = m_Clients[clientID];
     const auto& clientInfo = client->GetInfoString();
     printf("\n%s Disconnected...", clientInfo.c_str());
 
@@ -95,20 +96,25 @@ bool Server::OnClientConnected(tcp::socket socket)
     // first level of checking is done, so we can create a client handler object.
     Client* newClient = Client::Create(this, std::move(socket), m_NewClientID);
 
-    // will call the derived classes func, for further checking.
-    if (!OnClientConnected(newClient))
-    {
-        printf("\n Connection refused to : %s", newClient->GetInfoString().c_str());
-        delete newClient;
-        return false;
-    }
-
     printf("\nClient Connected : %s", newClient->GetInfoString().c_str());
 
     // add the new client to the clients map.
     m_MutexClients.lock();
     m_Clients.insert(std::make_pair(m_NewClientID, newClient));
     m_MutexClients.unlock();
+
+    // will call the derived classes func, for further checking.
+    if (!OnClientConnected(newClient->GetID()))
+    {
+        // remove the new client from the clients map.
+        m_MutexClients.lock();
+        m_Clients.erase(m_NewClientID);
+        m_MutexClients.unlock();
+
+        printf("\n Connection refused to : %s", newClient->GetInfoString().c_str());
+        delete newClient;
+        return false;
+    }
 
     ++m_NewClientID;
 
@@ -161,55 +167,57 @@ void Server::Write(tcp::socket& socket, const std::string& buffer)
 }
 
 // public
-void Server::Write(Client* client, const std::string& str)
+void Server::Write(ClientID ID, const std::string& str)
 {
     std::vector<uint8_t> buffer(str.begin(), str.end());
-    Write(client, buffer);
+    Write(ID, buffer);
 }
 
 // public
-void Server::Write(Client* client, const std::vector<uint8_t>& buffer)
+void Server::Write(ClientID ID, const std::vector<uint8_t>& buffer)
 {
-    Write(client, buffer, buffer.size());
+    Write(ID, buffer, buffer.size());
 }
 
 // public
-void Server::Write(Client* client, const std::vector<uint8_t>& buffer, std::size_t numBytesToWrite)
+void Server::Write(ClientID ID, const std::vector<uint8_t>& buffer, std::size_t numBytesToWrite)
 {
+    Client* client = m_Clients[ID];
     client->Write(buffer, numBytesToWrite);
 }
 
 // public
-void Server::AsyncWrite(Client* client, const std::string& str)
+void Server::AsyncWrite(ClientID ID, const std::string& str)
 {
     std::vector<uint8_t> buffer(str.begin(), str.end());
-    AsyncWrite(client, buffer);
+    AsyncWrite(ID, buffer);
 }
 
 // public
-void Server::AsyncWrite(Client* client, const std::vector<uint8_t>& buffer)
+void Server::AsyncWrite(ClientID ID, const std::vector<uint8_t>& buffer)
 {
-    AsyncWrite(client, buffer, buffer.size());
+    AsyncWrite(ID, buffer, buffer.size());
 }
 
 // public
-void Server::AsyncWrite(Client* client, const std::vector<uint8_t>& buffer, std::size_t numBytesToWrite)
+void Server::AsyncWrite(ClientID ID, const std::vector<uint8_t>& buffer, std::size_t numBytesToWrite)
 {
+    Client* client = m_Clients[ID];
     client->ScheduleWrite(buffer, numBytesToWrite);
 }
 
 // public
-void Server::MessageAllClients(const std::vector<uint8_t>& message, const Client* clientToIgnore)
+void Server::MessageAllClients(const std::vector<uint8_t>& message, ClientID clientToIgnoreID)
 {
-    MessageAllClients(message, message.size(), clientToIgnore);
+    MessageAllClients(message, message.size(), clientToIgnoreID);
 }
 
 // public
-void Server::MessageAllClients(const std::vector<uint8_t>& message, std::size_t bytesToWrite, const Client* clientToIgnore)
+void Server::MessageAllClients(const std::vector<uint8_t>& message, std::size_t bytesToWrite, ClientID clientToIgnoreID)
 {
     for (const auto [id, client] : m_Clients)
     {
-        if (clientToIgnore != nullptr && clientToIgnore->GetID() == id)
+        if (id == clientToIgnoreID)
             continue;
 
         client->ScheduleWrite(message, bytesToWrite);

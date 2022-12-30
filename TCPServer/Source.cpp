@@ -22,22 +22,23 @@ public:
     {
     }
     
-    virtual bool OnClientConnected(const TCP::Client* newClient) override
+    virtual bool OnClientConnected(TCP::ClientID ID) override
     {
-        if (newClient == nullptr)
-            return false;
+        const TCP::Client* newClient = base::GetClient(ID);
 
         std::string newConnectionMessage 
             = std::format("New Client Connected : {}" CRLF, newClient->GetInfoString());
         std::vector<uint8_t> buffer(newConnectionMessage.begin(), newConnectionMessage.end());
 
-        base::MessageAllClients(buffer, newClient);
+        base::MessageAllClients(buffer, buffer.size(), ID);
 
         return true;
     }
 
-    virtual void OnDataReceived(const TCP::Client* client) override
+    virtual void OnDataReceived(TCP::ClientID ID) override
     {
+        const TCP::Client* client = base::GetClient(ID);
+
         const auto& buffer = client->GetReadBuffer();
         std::size_t bytesRead = client->GetBytesRead();
         const auto& clientInfo = client->GetInfoString();
@@ -46,15 +47,17 @@ public:
         printf("\nFrom %s : %s", clientInfo.c_str(), data.c_str());
     }
 
-    virtual void OnClientDisconnected(const TCP::Client* client) override
+    virtual void OnClientDisconnected(TCP::ClientID ID) override
     {
+        const TCP::Client* client = base::GetClient(ID);
+
         const auto& clientInfo = client->GetInfoString();
         std::string message = std::format("{} Disconnected..." CRLF, clientInfo);
         std::vector<uint8_t> buffer(message.begin(), message.end());
 
-        MessageAllClients(buffer, client);
+        base::MessageAllClients(buffer, buffer.size(), ID);
 
-        base::OnClientDisconnected(client);
+        base::OnClientDisconnected(ID);
     }
 
 };

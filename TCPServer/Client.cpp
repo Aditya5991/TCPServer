@@ -48,19 +48,19 @@ void Client::ScheduleRead()
             // check if the client disconnected from the server.
             if (ec == boost::asio::error::eof)
             {
-                m_Server->OnClientDisconnected(this);
+                m_Server->OnClientDisconnected(GetID());
                 return;
             }
 
             // check if any errorneous data(according to boost::asio) is received from the client.
             if (ec)
             {
-                m_Server->OnDataReceivedError(this, ec);
+                m_Server->OnDataReceivedError(GetID(), ec);
                 return;
             }
 
             m_BytesRead = bytesRead;
-            m_Server->OnDataReceived(this);
+            m_Server->OnDataReceived(GetID());
 
             /* Assign the context with another read task. */
             ScheduleRead();

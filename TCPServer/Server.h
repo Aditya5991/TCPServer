@@ -12,6 +12,8 @@ BEGIN_NAMESPACE_TCP
 
 using boost::asio::ip::tcp;
 
+using ClientID = std::size_t;
+
 class Client;
 
 class Server
@@ -42,28 +44,28 @@ public:
     *       return value indicates whether the server should accept the connection or not.
     *       e.g. Validating a client.
     */
-    virtual bool OnClientConnected(const Client* client) = 0;
+    virtual bool OnClientConnected(ClientID ID) = 0;
 
     /**
     * This function is a callback which is called when data is received for any client.
     * 
-    * @params [in] client
-    *       const Pointer to client handler class that has just connected to this server.
+    * @params [in] clientID
+    *       ID of the client that has just connected to this server.
     * 
     */
-    virtual void OnDataReceived(const Client* client) = 0;
+    virtual void OnDataReceived(ClientID ID) = 0;
 
     /**
     * This function is called when any errorneous data is received from any client.
     * For now, this function disconnects the client directly.
     * 
     * @params [in] client
-    *       const ptr to the client handler from which the errorneous data is received.
+    *       ID of the client from which the errorneous data is received.
     * 
     * @params [in] ec
     *       error code received from boost::asio.
     */
-    void OnDataReceivedError(const Client* client, const boost::system::error_code& ec);
+    void OnDataReceivedError(ClientID ID, const boost::system::error_code& ec);
     
     /**
     * This function is called when any new client connects to the server and adds it to the client map.
@@ -82,9 +84,9 @@ public:
     * Removes the client from the clients map.
     * 
     * @params [in] client
-    *       Pointer to the client handler object that disconnected from the server.
+    *       ID of the client that disconnected from the server.
     */
-    virtual void OnClientDisconnected(const Client* client);
+    virtual void OnClientDisconnected(ClientID ID);
 
     /**
     * This function can be used to send a message to all the clients that are connected to this server.
@@ -92,11 +94,11 @@ public:
     * @params [in] message
     *       Bytes of data that needs to be sent.
     * 
-    * @param [in] clientToIgnore
-    *       Optional param, used to ignore any particular client.
+    * @param [in] clientToIgnoreID
+    *       Optional param, ID of the client that we want to ignore sending message to.
     * 
     */
-    void MessageAllClients(const std::vector<uint8_t>& message, const Client* clientToIgnore = nullptr);
+    void MessageAllClients(const std::vector<uint8_t>& message, ClientID ID = 0);
 
     /**
     * This function can be used to send a message to all the clients that are connected to this server.
@@ -108,10 +110,10 @@ public:
     *       Number of bytes of write from the 'message' vector.
     * 
     * @param [in] clientToIgnore
-    *       Optional param, used to ignore any particular client.
+    *       Optional param, ID of the client that we want to ignore sending message to.
     *
     */
-    void MessageAllClients(const std::vector<uint8_t>& message, std::size_t bytesToWrite, const Client* clientToIgnore = nullptr);
+    void MessageAllClients(const std::vector<uint8_t>& message, std::size_t bytesToWrite, ClientID ID = 0);
 
     /**
     * Synchronous function to directly write data to a socket.
@@ -128,23 +130,23 @@ public:
     * Synchronous function to write data through a client handler pointer.
     *
     * @params [in] client
-    *       Pointer to the client handler to write data to.
+    *       ID of the client to write data to.
     *
     * @params [in] buffer
     *       String Data to be written to the socket.
     */
-    void Write(Client* client, const std::string& buffer);
+    void Write(ClientID ID, const std::string& buffer);
 
     /**
     * Synchronous function to write data through a client handler pointer.
     *
     * @params [in] client
-    *       Pointer to the client handler to write data to.
+    *       ID of the client to write data to.
     *
     * @params [in] buffer
     *       Bytes of data to be written to the socket.
     */
-    void Write(Client* client, const std::vector<uint8_t>& buffer);
+    void Write(ClientID ID, const std::vector<uint8_t>& buffer);
 
     /**
     * Synchronous function to write data through a client handler pointer.
@@ -158,35 +160,35 @@ public:
     * @params [in] numBytesToWrite
     *       Number of bytes of data to be written to the socket from the 'buffer'.
     */
-    void Write(Client* client, const std::vector<uint8_t>& buffer, std::size_t numBytesToWrite);
+    void Write(ClientID ID, const std::vector<uint8_t>& buffer, std::size_t numBytesToWrite);
+
+    /**
+    * Asynchronous function to write data to a Client.
+    *
+    * @params [in] ID
+    *       ID of the client to write the data to.
+    *
+    * @params [in] buffer
+    *       String Data to be written to the socket.
+    */
+    void AsyncWrite(ClientID ID, const std::string& buffer);
 
     /**
     * Asynchronous function to write data through a client handler pointer.
     *
-    * @params [in] client
-    *       Pointer to the client handler to write data to.
-    *
-    * @params [in] buffer
-    *       String Data to be written to the socket.
-    */
-    void AsyncWrite(Client* client, const std::string& buffer);
-
-    /**
-    * Synchronous function to write data through a client handler pointer.
-    *
-    * @params [in] client
-    *       Pointer to the client handler to write data to.
+    * @params [in] ID
+    *       ID of the client to write the data to.
     *
     * @params [in] buffer
     *       Bytes of data to be written to the socket.
     */
-    void AsyncWrite(Client* client, const std::vector<uint8_t>& buffer);
+    void AsyncWrite(ClientID ID, const std::vector<uint8_t>& buffer);
 
     /**
-    * Synchronous function to write data through a client handler pointer.
+    * Asynchronous function to write data through a client handler pointer.
     *
-    * @params [in] client
-    *       Pointer to the client handler to write data to.
+    * @params [in] ID
+    *       ID of the client to write the data to.
     *
     * @params [in] buffer
     *       Bytes of data to be written to the socket.
@@ -194,7 +196,7 @@ public:
     * @params [in] numBytesToWrite
     *       Number of bytes of data to be written to the socket from the 'buffer'.
     */
-    void AsyncWrite(Client* client, const std::vector<uint8_t>& buffer, std::size_t numBytesToWrite);
+    void AsyncWrite(ClientID ID, const std::vector<uint8_t>& buffer, std::size_t numBytesToWrite);
 
     /**
     * This function makes the main thread wait, till boost::asio::io_context runs out of jobs to perform.
@@ -211,6 +213,10 @@ public:
     */
     int GetPort() const { return m_Port; }
 
+protected:
+
+    const Client* GetClient(ClientID ID) const { return m_Clients.at(ID); }
+
 private:
 
     /**
@@ -226,28 +232,28 @@ private:
 private:
 
     /* Port that the server is listening on. */
-    int                                 m_Port;
+    int                                     m_Port;
 
     /* IO context of the server. */
-    boost::asio::io_context             m_IOContext;
+    boost::asio::io_context                 m_IOContext;
 
     /* Thread on which the io_context performs it's tasks */
-    std::thread                         m_ContextThread;
+    std::thread                             m_ContextThread;
 
     /* Used to accept new client connections to the server. */
-    boost::asio::ip::tcp::acceptor      m_Acceptor;
+    boost::asio::ip::tcp::acceptor          m_Acceptor;
 
     /* Mutext to protect the m_Clients. */
-    std::mutex                          m_MutexClients;
+    std::mutex                              m_MutexClients;
 
     /* Map of ClientID against the Client Handler pointer. */
-    std::unordered_map<int, Client*>    m_Clients;
+    std::unordered_map<ClientID, Client*>   m_Clients;
 
     /* ID that will be assigned to the next client that will connect to the server. */
-    uint32_t                            m_NewClientID;
+    uint32_t                                m_NewClientID;
 
     /* Maximum number of clients that are allowed to connect to the server. */
-    uint32_t                            m_MaxClientsAllowed;
+    uint32_t                                m_MaxClientsAllowed;
 };
 
 END_NAMESPACE_TCP
