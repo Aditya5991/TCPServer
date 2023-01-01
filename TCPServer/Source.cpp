@@ -26,14 +26,15 @@ public:
 
         printf("\nClient Connected : %s", newClientHandle->GetInfoString().c_str());
 
+        /* Send the ID to the newly connected client. */
+        std::string IDMessage = std::format("Your ID is : {}" CRLF, newClientID);
+        std::vector<uint8_t> IDMessageBuffer(IDMessage.begin(), IDMessage.end());
+        base::MessageClient(newClientID, IDMessageBuffer, IDMessageBuffer.size());
+
+        /* Send Message to all the clients that the new Client has connected. */
         std::string newConnectionMessage 
             = std::format("New Client Connected : {}" CRLF, newClientHandle->GetInfoString());
         std::vector<uint8_t> buffer(newConnectionMessage.begin(), newConnectionMessage.end());
-
-        std::string IDMessage = std::format("Your ID is : {}" CRLF, newClientID);
-        std::vector<uint8_t> IDMessageBuffer(IDMessage.begin(), IDMessage.end());
-
-        base::MessageClient(newClientID, IDMessageBuffer, IDMessageBuffer.size());
 
         // don't send message to the newly connected client.
         base::MessageAllClients(buffer, buffer.size(), newClientID);

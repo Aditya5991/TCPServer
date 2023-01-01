@@ -1,5 +1,6 @@
 #include "Server.h"
 #include "ClientHandler.h"
+#include "IOBuffer.h"
 #include <iostream>
 #include <vector>
 #include <array>
@@ -202,6 +203,20 @@ void Server::AsyncWrite(ClientID ID, const std::vector<uint8_t>& buffer, std::si
 }
 
 // public
+void Server::MessageClient(ClientID ID, const std::string& message)
+{
+    std::vector<uint8_t> buffer(message.begin(), message.end());
+    MessageClient(ID, buffer, buffer.size());
+}
+
+// public
+void Server::MessageClient(ClientID ID, const net::IOBuffer& buffer)
+{
+    if (buffer.HasData())
+        MessageClient(ID, buffer.GetData(), buffer.Size());
+}
+
+// public
 void Server::MessageClient(ClientID ID, const std::vector<uint8_t>& buffer, std::size_t bytesToWrite)
 {
     ClientHandler* client = m_ClientHandlers[ID];
@@ -209,9 +224,22 @@ void Server::MessageClient(ClientID ID, const std::vector<uint8_t>& buffer, std:
 }
 
 // public
-void Server::MessageAllClients(const std::vector<uint8_t>& message, ClientID clientToIgnoreID)
+void Server::MessageAllClients(const net::IOBuffer& buffer, ClientID clientToIgnoreID)
 {
-    MessageAllClients(message, message.size(), clientToIgnoreID);
+    for (auto iter : m_ClientHandlers)
+    {
+        std::size_t ID = iter.first;
+        if (IsValidClientID(clientToIgnoreID) && ID == clientToIgnoreID)
+            continue;
+
+        MessageClient(ID, buffer);
+    }
+}
+
+// public
+void Server::MessageAllClients(const std::vector<uint8_t>& buffer, ClientID clientToIgnoreID)
+{
+    MessageAllClients(buffer, buffer.size(), clientToIgnoreID);
 }
 
 // public
@@ -220,13 +248,18 @@ void Server::MessageAllClients(const std::vector<uint8_t>& message, std::size_t 
     for (auto iter : m_ClientHandlers)
     {
         std::size_t ID = iter.first;
-        if (IsValidClientID(clientToIgnoreID)
-            && IsValidClientID(ID)
-            && iter.first != clientToIgnoreID)
-        {
-            MessageClient(iter.first, message, bytesToWrite);
-        }
+        if (IsValidClientID(clientToIgnoreID) && ID == clientToIgnoreID)
+            continue;
+
+        MessageClient(ID, message, bytesToWrite);
     }
+}
+
+// public
+void Server::MessageAllClients(const std::string& message, ClientID clientToIgnoreID)
+{
+    std::vector<uint8_t> buffer(message.begin(), message.end());
+    MessageAllClients(buffer, buffer.size(), clientToIgnoreID);
 }
 
 // public

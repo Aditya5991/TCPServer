@@ -8,13 +8,15 @@
 #include <inttypes.h>
 
 
+namespace net { class IOBuffer; }
+
 BEGIN_NAMESPACE_TCP
 
 using boost::asio::ip::tcp;
 
-using ClientID = std::size_t;
-
 class ClientHandler;
+
+using ClientID = std::size_t;
 
 class Server
 {
@@ -90,44 +92,93 @@ public:
 
     /**
     * This function can be used to send byte data to a specific Client.
-    * 
+    *
     * @param [in] ID
     *       ID of the client to send the data to.
-    * 
+    *
+    * @param [in] buffer
+    *       net::IOBuffer object that contains the data to be sent.
+    */
+    void MessageClient(ClientID ID, const IOBuffer& buffer);
+
+    /**
+    * This function can be used to send string data to a specific Client.
+    *
+    * @param [in] ID
+    *       ID of the client to send the data to.
+    *
+    * @param [in] message
+    *       String data that is to be sent to the Client.
+    */
+    void MessageClient(ClientID ID, const std::string& message);
+
+
+    /**
+    * This function can be used to send a buffer to a specific Client.
+    *
+    * @param [in] ID
+    *       ID of the client to send the data to.
+    *
     * @param [in] buffer
     *       Byte data that is to be sent to the Client.
     */
     void MessageClient(ClientID ID, const std::vector<uint8_t>& buffer, std::size_t bytesToWrite);
 
     /**
-    * This function can be used to send a message to all the clients that are connected to this server.
+    * This function can be used to send a buffer in the form of IOBuffer to all the clients that are connected to this server.
     *
-    * @params [in] message
+    * @params [in] buffer
     *       Bytes of data that needs to be sent.
-    * 
+    *
     * @param [in] clientToIgnoreID
-    *       Optional param, ID of the client that we want to ignore sending the message to.
-    * 
+    *       Optional param, ID of the client that we want to ignore sending the buffer to.
+    *
     */
-    void MessageAllClients(const std::vector<uint8_t>& message, ClientID ID = 0);
+    void MessageAllClients(const net::IOBuffer& buffer, ClientID ID = 0);
 
     /**
-    * This function can be used to send a message to all the clients that are connected to this server.
+    * This function can be used to send a string message to all the clients that are connected to this server.
     *
     * @params [in] message
     *       Bytes of data that needs to be sent.
     *
-    * @params [in] bytesToWrite
-    *       Number of bytes of write from the 'message' vector.
-    * 
     * @param [in] clientToIgnore
     *       Optional param, ID of the client that we want to ignore sending the message to.
     *
     */
-    void MessageAllClients(const std::vector<uint8_t>& message, std::size_t bytesToWrite, ClientID ID = 0);
+    void MessageAllClients(const std::string& message, ClientID ID = 0);
 
     /**
-    * Synchronous function to directly write data to a socket.
+    * This function can be used to send a buffer to all the clients that are connected to this server.
+    * The entire buffer will be sent.
+    *
+    * @params [in] buffer
+    *       Bytes of data that needs to be sent.
+    * 
+    * @param [in] clientToIgnoreID
+    *       Optional param, ID of the client that we want to ignore sending the buffer to.
+    * 
+    */
+    void MessageAllClients(const std::vector<uint8_t>& buffer, ClientID ID = 0);
+
+    /**
+    * This function can be used to send a buffer to all the clients that are connected to this server.
+    * You can restrict the number of bytes to be sent by using the 'bytesToWrite' param.
+    *
+    * @params [in] buffer
+    *       Bytes of data that needs to be sent.
+    *
+    * @params [in] bytesToWrite
+    *       Number of bytes of write from the 'buffer' vector.
+    * 
+    * @param [in] clientToIgnore
+    *       Optional param, ID of the client that we want to ignore sending the buffer to.
+    *
+    */
+    void MessageAllClients(const std::vector<uint8_t>& buffer, std::size_t bytesToWrite, ClientID ID = 0);
+
+    /**
+    * Synchronous function to directly write string data to a socket.
     *
     * @params [in] socket
     *       Socket to write the data to
@@ -138,7 +189,7 @@ public:
     void Write(tcp::socket& socket, const std::string& buffer);
 
     /**
-    * Synchronous function to write data through a client handler pointer.
+    * Synchronous function to write string data through a client handler pointer.
     *
     * @params [in] client
     *       ID of the client to write data to.

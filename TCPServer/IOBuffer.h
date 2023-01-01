@@ -11,6 +11,11 @@ class IOBuffer
 public:
 
     /**
+    * Returns the Buffer stream.
+    */
+    const std::vector<uint8_t>& GetData() const { return m_Buffer; }
+
+    /**
     * Returns if the buffer stream contains any more data.
     */
     bool HasData() const { return Size() > 0; }
@@ -19,6 +24,11 @@ public:
     * Returns the current size of the buffer.
     */
     std::size_t Size() const { return m_Buffer.size(); }
+
+    /**
+    * Clears all the data from the buffer. The IOBuffer can then be used to store new data.
+    */
+    void Clear() { m_Buffer.clear(); }
 
     /**
     * Writes data to the Stream.
