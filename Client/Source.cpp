@@ -23,7 +23,7 @@ std::string read(tcp::socket& socket)
 
 std::string read_some(tcp::socket& socket)
 {
-    char buffer[256];
+    char buffer[10 * 1024];
     try
     {
         memset(buffer, 0, sizeof(buffer));
@@ -56,13 +56,13 @@ int main(int argc, char* argv[])
     try
     {
 
-        std::string host = "localhost";
+        std::string host = "smtp.gmail.com";
 
         boost::asio::io_context io_context;
 
         tcp::resolver resolver(io_context);
         tcp::resolver::results_type endpoints =
-            resolver.resolve(host, "8080");
+            resolver.resolve(host, "587");
 
 
         tcp::socket socket(io_context);

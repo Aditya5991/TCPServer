@@ -56,8 +56,6 @@ bool Server::Stop()
 // public
 void Server::OnDataReceivedError(ClientID clientID, const boost::system::error_code& ec)
 {
-    printf("Error reading from Client : %s", ec.message().c_str());
-
     /* directly disconnect the connection of this client */
     OnClientDisconnected(clientID);
 }
@@ -67,7 +65,6 @@ void Server::OnClientDisconnected(ClientID clientID)
 {
     ClientHandler* clientHandle = m_ClientHandlers[clientID];
     const auto& clientInfo = clientHandle->GetInfoString();
-    printf("\n%s Disconnected...", clientInfo.c_str());
 
     uint32_t id = clientHandle->GetID();
     auto iter = m_ClientHandlers.find(id);
@@ -95,8 +92,6 @@ bool Server::OnClientConnected(tcp::socket socket)
 
     // first level of checking is done, so we can create a client handler object.
     ClientHandler* newClientHandle = ClientHandler::Create(this, std::move(socket), m_NewClientID);
-
-    printf("\nClient Connected : %s", newClientHandle->GetInfoString().c_str());
 
     // add the new client to the clients map.
     m_MutexClients.lock();
@@ -207,10 +202,10 @@ void Server::AsyncWrite(ClientID ID, const std::vector<uint8_t>& buffer, std::si
 }
 
 // public
-void Server::MessageClient(ClientID ID, const std::vector<uint8_t>& buffer)
+void Server::MessageClient(ClientID ID, const std::vector<uint8_t>& buffer, std::size_t bytesToWrite)
 {
     ClientHandler* client = m_ClientHandlers[ID];
-    client->ScheduleWrite(buffer, buffer.size());
+    client->ScheduleWrite(buffer, bytesToWrite);
 }
 
 // public
@@ -222,12 +217,15 @@ void Server::MessageAllClients(const std::vector<uint8_t>& message, ClientID cli
 // public
 void Server::MessageAllClients(const std::vector<uint8_t>& message, std::size_t bytesToWrite, ClientID clientToIgnoreID)
 {
-    for (const auto [id, clientHandle] : m_ClientHandlers)
+    for (auto iter : m_ClientHandlers)
     {
-        if (id == clientToIgnoreID)
-            continue;
-
-        clientHandle->ScheduleWrite(message, bytesToWrite);
+        std::size_t ID = iter.first;
+        if (IsValidClientID(clientToIgnoreID)
+            && IsValidClientID(ID)
+            && iter.first != clientToIgnoreID)
+        {
+            MessageClient(iter.first, message, bytesToWrite);
+        }
     }
 }
 

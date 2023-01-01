@@ -88,7 +88,16 @@ public:
     */
     virtual void OnClientDisconnected(ClientID ID);
 
-    void MessageClient(ClientID ID, const std::vector<uint8_t>& buffer);
+    /**
+    * This function can be used to send byte data to a specific Client.
+    * 
+    * @param [in] ID
+    *       ID of the client to send the data to.
+    * 
+    * @param [in] buffer
+    *       Byte data that is to be sent to the Client.
+    */
+    void MessageClient(ClientID ID, const std::vector<uint8_t>& buffer, std::size_t bytesToWrite);
 
     /**
     * This function can be used to send a message to all the clients that are connected to this server.
@@ -217,12 +226,26 @@ public:
 
 protected:
 
+    /**
+    *   Returns if the input ID is valid or not.
+    * 
+    * @param [in] ID
+    *       ID to be validated.
+    */
+    bool IsValidClientID(ClientID ID) const { return ID != 0; }
+
+    /**
+    * Returns the ClientHandler from the given ClientID.
+    * 
+    * @param [in] ID
+    *       ID of the client whose handler is to be retreived.
+    */
     const ClientHandler* GetClient(ClientID ID) const { return m_ClientHandlers.at(ID); }
 
 private:
 
     /**
-    * This dunction is called when the server starts, and adds the job of accepting a new connection to the io_context.
+    * This function is called when the server starts, and adds the job of accepting a new connection to the io_context.
     */
     void WaitToAcceptNewConnection();
 

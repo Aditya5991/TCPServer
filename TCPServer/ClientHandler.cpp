@@ -97,7 +97,6 @@ void ClientHandler::ScheduleWrite(const std::vector<uint8_t>& buffer, std::size_
                 printf("\nError Writing to %s.", GetInfoString().c_str());
                 return;
             }
-            printf("\nSent to %s", GetInfoString().c_str());
         });
 }
 
