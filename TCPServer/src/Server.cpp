@@ -19,7 +19,7 @@ Server::Server(int port, uint32_t maxClientsAllowed)
     : m_MaxClientsAllowed(maxClientsAllowed)
     , m_Port(port)
     , m_IOContext()
-    , m_Acceptor(IOContext(), tcp::endpoint(tcp::v4(), port))
+    , m_Acceptor(IOContext(), boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port))
     , m_NewClientID(1)
 {
 }
@@ -55,7 +55,9 @@ bool Server::Stop()
 }
 
 // public
-void Server::OnDataReceivedError(ClientID clientID, const boost::system::error_code& ec)
+void Server::OnDataReceivedError(
+    ClientID clientID, 
+    const boost::system::error_code& ec)
 {
     /* directly disconnect the connection of this client */
     OnClientDisconnected(clientID);
@@ -64,7 +66,7 @@ void Server::OnDataReceivedError(ClientID clientID, const boost::system::error_c
 // public
 void Server::OnClientDisconnected(ClientID clientID)
 {
-    ClientHandler* clientHandle = m_ClientHandlers[clientID];
+    auto clientHandle = m_ClientHandlers[clientID];
     const auto& clientInfo = clientHandle->GetInfoString();
 
     uint32_t id = clientHandle->GetID();
@@ -74,13 +76,12 @@ void Server::OnClientDisconnected(ClientID clientID)
      
     // remove the client from our clients map
     std::lock_guard guard(m_MutexClients);
-    delete iter->second;
-    iter->second = nullptr;
+    iter->second.reset();
     m_ClientHandlers.erase(id);
 }
 
 // public virtual
-bool Server::OnClientConnected(tcp::socket socket)
+bool Server::OnClientConnected(boost::asio::ip::tcp::socket socket)
 {
     // check if max client limit is reached
     if (m_ClientHandlers.size() >= m_MaxClientsAllowed)
@@ -92,7 +93,12 @@ bool Server::OnClientConnected(tcp::socket socket)
     }
 
     // first level of checking is done, so we can create a client handler object.
-    ClientHandler* newClientHandle = ClientHandler::Create(this, std::move(socket), m_NewClientID);
+    ClientHandlerSPtr newClientHandle = ClientHandler::Create(
+        std::move(socket), 
+        m_NewClientID, 
+        boost::bind(&Server::OnDataReceived, this, std::placeholders::_1),
+        boost::bind(&Server::OnDataReceivedError, this, std::placeholders::_1, std::placeholders::_2),
+        boost::bind(&Server::OnClientDisconnected, this, std::placeholders::_1));
 
     // add the new client to the clients map.
     m_MutexClients.lock();
@@ -108,7 +114,7 @@ bool Server::OnClientConnected(tcp::socket socket)
         m_MutexClients.unlock();
 
         printf("\n Connection refused to : %s", newClientHandle->GetInfoString().c_str());
-        delete newClientHandle;
+        newClientHandle.reset();
         return false;
     }
 
@@ -126,7 +132,7 @@ void Server::WaitToAcceptNewConnection()
     try
     {
         printf("\nWaiting for New Connection...");
-        m_Acceptor.async_accept([this](boost::system::error_code ec, tcp::socket socket)
+        m_Acceptor.async_accept([this](boost::system::error_code ec, boost::asio::ip::tcp::socket socket)
             {
                 if (ec)
                 {
@@ -147,7 +153,9 @@ void Server::WaitToAcceptNewConnection()
 }
 
 // public
-void Server::Write(tcp::socket& socket, const std::string& buffer)
+void Server::Write(
+    boost::asio::ip::tcp::socket& socket, 
+    const std::string& buffer)
 {
     if (!socket.is_open())
         return;
@@ -163,22 +171,29 @@ void Server::Write(tcp::socket& socket, const std::string& buffer)
 }
 
 // public
-void Server::Write(ClientID ID, const std::string& str)
+void Server::Write(
+    ClientID ID, 
+    const std::string& str)
 {
     std::vector<uint8_t> buffer(str.begin(), str.end());
     Write(ID, buffer);
 }
 
 // public
-void Server::Write(ClientID ID, const std::vector<uint8_t>& buffer)
+void Server::Write(
+    ClientID ID, 
+    const std::vector<uint8_t>& buffer)
 {
     Write(ID, buffer, buffer.size());
 }
 
 // public
-void Server::Write(ClientID ID, const std::vector<uint8_t>& buffer, std::size_t numBytesToWrite)
+void Server::Write(
+    ClientID ID, 
+    const std::vector<uint8_t>& buffer, 
+    std::size_t numBytesToWrite)
 {
-    ClientHandler* clientHandle = m_ClientHandlers[ID];
+    ClientHandlerSPtr clientHandle = m_ClientHandlers[ID];
     clientHandle->Write(buffer, numBytesToWrite);
 }
 
@@ -190,41 +205,55 @@ void Server::AsyncWrite(ClientID ID, const std::string& str)
 }
 
 // public
-void Server::AsyncWrite(ClientID ID, const std::vector<uint8_t>& buffer)
+void Server::AsyncWrite(
+    ClientID ID, 
+    const std::vector<uint8_t>& buffer)
 {
     AsyncWrite(ID, buffer, buffer.size());
 }
 
 // public
-void Server::AsyncWrite(ClientID ID, const std::vector<uint8_t>& buffer, std::size_t numBytesToWrite)
+void Server::AsyncWrite(
+    ClientID ID, 
+    const std::vector<uint8_t>& buffer, 
+    std::size_t numBytesToWrite)
 {
-    ClientHandler* client = m_ClientHandlers[ID];
+    ClientHandlerSPtr client = m_ClientHandlers[ID];
     client->ScheduleWrite(buffer, numBytesToWrite);
 }
 
 // public
-void Server::MessageClient(ClientID ID, const std::string& message)
+void Server::MessageClient(
+    ClientID ID, 
+    const std::string& message)
 {
     std::vector<uint8_t> buffer(message.begin(), message.end());
     MessageClient(ID, buffer, buffer.size());
 }
 
 // public
-void Server::MessageClient(ClientID ID, const net::IOBuffer& buffer)
+void Server::MessageClient(
+    ClientID ID, 
+    const net::IOBuffer& buffer)
 {
     if (buffer.HasData())
         MessageClient(ID, buffer.GetData(), buffer.Size());
 }
 
 // public
-void Server::MessageClient(ClientID ID, const std::vector<uint8_t>& buffer, std::size_t bytesToWrite)
+void Server::MessageClient(
+    ClientID ID, 
+    const std::vector<uint8_t>& buffer, 
+    std::size_t numBytesToWrite)
 {
-    ClientHandler* client = m_ClientHandlers[ID];
-    client->ScheduleWrite(buffer, bytesToWrite);
+    ClientHandlerSPtr client = m_ClientHandlers[ID];
+    client->ScheduleWrite(buffer, numBytesToWrite);
 }
 
 // public
-void Server::MessageAllClients(const net::IOBuffer& buffer, ClientID clientToIgnoreID)
+void Server::MessageAllClients(
+    const net::IOBuffer& buffer, 
+    ClientID clientToIgnoreID)
 {
     for (auto iter : m_ClientHandlers)
     {
@@ -237,13 +266,18 @@ void Server::MessageAllClients(const net::IOBuffer& buffer, ClientID clientToIgn
 }
 
 // public
-void Server::MessageAllClients(const std::vector<uint8_t>& buffer, ClientID clientToIgnoreID)
+void Server::MessageAllClients(
+    const std::vector<uint8_t>& buffer, 
+    ClientID clientToIgnoreID)
 {
     MessageAllClients(buffer, buffer.size(), clientToIgnoreID);
 }
 
 // public
-void Server::MessageAllClients(const std::vector<uint8_t>& message, std::size_t bytesToWrite, ClientID clientToIgnoreID)
+void Server::MessageAllClients(
+    const std::vector<uint8_t>& message, 
+    std::size_t numBytesToWrite, 
+    ClientID clientToIgnoreID)
 {
     for (auto iter : m_ClientHandlers)
     {
@@ -251,12 +285,14 @@ void Server::MessageAllClients(const std::vector<uint8_t>& message, std::size_t 
         if (IsValidClientID(clientToIgnoreID) && ID == clientToIgnoreID)
             continue;
 
-        MessageClient(ID, message, bytesToWrite);
+        MessageClient(ID, message, numBytesToWrite);
     }
 }
 
 // public
-void Server::MessageAllClients(const std::string& message, ClientID clientToIgnoreID)
+void Server::MessageAllClients(
+    const std::string& message, 
+    ClientID clientToIgnoreID)
 {
     std::vector<uint8_t> buffer(message.begin(), message.end());
     MessageAllClients(buffer, buffer.size(), clientToIgnoreID);

@@ -8,6 +8,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TCPServer", "TCPServer\TCPServer.vcxproj", "{932C056B-DE7E-45F9-8D3C-6385A0A21C4B}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestServer", "TestServer\TestServer.vcxproj", "{E879A827-A6AE-41E8-AEAB-8C50D9A6C410}"
+	ProjectSection(ProjectDependencies) = postProject
+		{932C056B-DE7E-45F9-8D3C-6385A0A21C4B} = {932C056B-DE7E-45F9-8D3C-6385A0A21C4B}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

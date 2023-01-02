@@ -1,28 +1,22 @@
 #pragma once
 
 #include "Common.h"
-#include <boost/asio.hpp>
-#include <thread>
-#include <mutex>
-#include <queue>
-#include <inttypes.h>
 
 
 namespace net { class IOBuffer; }
 
 BEGIN_NAMESPACE_TCP
 
-using boost::asio::ip::tcp;
+using OnDataReceivedCallback = std::function<void(ClientID)>;
+using OnClientDisconnectedCallback = std::function<void(ClientID)>;
+using OnDataReceivedErrorCallback = std::function<void(ClientID, const boost::system::error_code&)>;
 
-class ClientHandler;
-
-using ClientID = std::size_t;
-
-class Server
+class Server : public std::enable_shared_from_this<Server>
 {
-public:
-
+protected:
     Server(int port, uint32_t maxClientsAllowed = -1);
+
+public:
     virtual ~Server();
 
     /**
@@ -79,7 +73,7 @@ public:
     * @return
     *       return value indicates whether the server should accept the connection or not.
     */
-    bool OnClientConnected(tcp::socket socket);
+    bool OnClientConnected(boost::asio::ip::tcp::socket socket);
 
     /**
     * This function is called when a client disconnects from the server.
@@ -121,8 +115,11 @@ public:
     *
     * @param [in] buffer
     *       Byte data that is to be sent to the Client.
+    * 
+    * @params [in] numBytesToWrite
+    *       Number of bytes of write from the 'buffer' vector.
     */
-    void MessageClient(ClientID ID, const std::vector<uint8_t>& buffer, std::size_t bytesToWrite);
+    void MessageClient(ClientID ID, const std::vector<uint8_t>& buffer, std::size_t numBytesToWrite);
 
     /**
     * This function can be used to send a buffer in the form of IOBuffer to all the clients that are connected to this server.
@@ -163,19 +160,19 @@ public:
 
     /**
     * This function can be used to send a buffer to all the clients that are connected to this server.
-    * You can restrict the number of bytes to be sent by using the 'bytesToWrite' param.
+    * You can restrict the number of bytes to be sent by using the 'numBytesToWrite' param.
     *
     * @params [in] buffer
     *       Bytes of data that needs to be sent.
     *
-    * @params [in] bytesToWrite
+    * @params [in] numBytesToWrite
     *       Number of bytes of write from the 'buffer' vector.
     * 
     * @param [in] clientToIgnore
     *       Optional param, ID of the client that we want to ignore sending the buffer to.
     *
     */
-    void MessageAllClients(const std::vector<uint8_t>& buffer, std::size_t bytesToWrite, ClientID ID = 0);
+    void MessageAllClients(const std::vector<uint8_t>& buffer, std::size_t numBytesToWrite, ClientID ID = 0);
 
     /**
     * Synchronous function to directly write string data to a socket.
@@ -186,7 +183,7 @@ public:
     * @params [in] buffer
     *       String Data to be written to the socket.
     */
-    void Write(tcp::socket& socket, const std::string& buffer);
+    void Write(boost::asio::ip::tcp::socket& socket, const std::string& buffer);
 
     /**
     * Synchronous function to write string data through a client handler pointer.
@@ -219,10 +216,10 @@ public:
     * @params [in] buffer
     *       Bytes of data to be written to the socket.
     *
-    * @params [in] numBytesToWrite
+    * @params [in] numnumBytesToWrite
     *       Number of bytes of data to be written to the socket from the 'buffer'.
     */
-    void Write(ClientID ID, const std::vector<uint8_t>& buffer, std::size_t numBytesToWrite);
+    void Write(ClientID ID, const std::vector<uint8_t>& buffer, std::size_t numnumBytesToWrite);
 
     /**
     * Asynchronous function to write data to a Client.
@@ -291,7 +288,7 @@ protected:
     * @param [in] ID
     *       ID of the client whose handler is to be retreived.
     */
-    const ClientHandler* GetClient(ClientID ID) const { return m_ClientHandlers.at(ID); }
+    const ClientHandlerSPtr GetClient(ClientID ID) const { return m_ClientHandlers.at(ID); }
 
 private:
 
@@ -323,7 +320,7 @@ private:
     std::mutex                              m_MutexClients;
 
     /* Map of ClientID against the Client Handler pointer. */
-    std::unordered_map<ClientID, ClientHandler*>   m_ClientHandlers;
+    std::unordered_map<ClientID, std::shared_ptr<ClientHandler>>   m_ClientHandlers;
 
     /* ID that will be assigned to the next client that will connect to the server. */
     uint32_t                                m_NewClientID;

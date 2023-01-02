@@ -1,17 +1,22 @@
 #pragma once
 
 #include "Common.h"
+#include "Server.h"
 #include <boost/asio.hpp>
 
 BEGIN_NAMESPACE_TCP
 
-using boost::asio::ip::tcp;
-
-class Server;
-
 class ClientHandler
 {
 public:
+    ClientHandler(
+        boost::asio::ip::tcp::socket socket, 
+        uint32_t id,
+        OnDataReceivedCallback cb_OnDataReceived,
+        OnDataReceivedErrorCallback cb_OnDataReceivedError,
+        OnClientDisconnectedCallback cb_OnClientDisconnected
+    );
+
     ClientHandler(const ClientHandler& rhs) = delete;
     ClientHandler(ClientHandler&&) = delete;
 
@@ -75,20 +80,32 @@ public:
     /**
     * Factory function to create an object of the class.
     * 
-    * @params [in] server
+    * @param [in] server
     *       Pointer to the server handler class.
     * 
-    * @params [in] socket
+    * @param [in] socket
     *       Socket to which this client is connected to.
     * 
-    * @params [in] id
+    * @param [in] id
     *       ID that is assigned by the server to this client.
     * 
+    * @param [in] cb_OnDataReceived
+    *       Callback function, called when server receives any data from the client.
+    * 
+    * @param [in] cb_OnDataReceivedError
+    *       Callback function, called when server receives any errorneous data from the client.
+    * 
+    * @param [in] cb_OnClientDisconnected
+    *       Callback function, called when a client disconnects from the server.
+    *
     */
-    static ClientHandler* Create(Server* server, tcp::socket socket, uint32_t id);
-
-private:
-    ClientHandler(Server* server, tcp::socket socket, uint32_t id);
+    static ClientHandlerSPtr Create(
+        boost::asio::ip::tcp::socket socket, 
+        uint32_t id,
+        OnDataReceivedCallback cb_OnDataReceived,
+        OnDataReceivedErrorCallback cb_OnDataReceivedError,
+        OnClientDisconnectedCallback cb_OnClientDisconnected
+    );
 
 private:
 
@@ -98,15 +115,24 @@ private:
     /* Latest bytes that are read into from the socket. */
     std::vector<uint8_t>                        m_ReadBuffer;
 
-    /* Pointer to the server handler class. */
-    Server*                                     m_Server;
-
     /* boost::asio::ip::tcp::socket object that is handled by this class. */
-    tcp::socket                                 m_Socket;
+    boost::asio::ip::tcp::socket                m_Socket;
 
     /* ID that is assigned to this client by the server. */
     const uint32_t                              m_ID;
+
+    /* Callbacks */
+    /* This callback will be called after the server receives data from the client. */
+    OnDataReceivedCallback m_OnDataReceivedCallback;
+
+    /* This callback will be called if we receive any errorneous data from the client. */
+    OnDataReceivedErrorCallback m_OnDataReceivedErrorCallback;
+
+    /* This callback will be called when the client disconnects. */
+    OnClientDisconnectedCallback m_OnClientDisconnectedCallback;
+
 };
+
 
 END_NAMESPACE_TCP
 

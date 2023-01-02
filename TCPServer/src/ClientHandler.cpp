@@ -1,5 +1,4 @@
 #include "ClientHandler.h"
-#include "Server.h"
 
 using boost::asio::ip::tcp;
 
@@ -7,14 +6,20 @@ BEGIN_NAMESPACE_TCP
 
 // private
 ClientHandler::ClientHandler(
-    Server* server,
-    tcp::socket socket,
-    uint32_t id)
+    boost::asio::ip::tcp::socket socket,
+    uint32_t id,
+    OnDataReceivedCallback cb_OnDataReceived,
+    OnDataReceivedErrorCallback cb_OnDataReceivedError,
+    OnClientDisconnectedCallback cb_OnClientDisconnected
+    )
     : m_BytesRead(0)
     , m_ReadBuffer(1 * 1024)
-    , m_Server(server)
     , m_Socket(std::move(socket))
     , m_ID(id)
+    , m_OnDataReceivedCallback(cb_OnDataReceived)
+    , m_OnDataReceivedErrorCallback(cb_OnDataReceivedError)
+    , m_OnClientDisconnectedCallback(cb_OnClientDisconnected)
+
 {
 }
 
@@ -25,9 +30,15 @@ ClientHandler::~ClientHandler()
 }
 
 // public static
-ClientHandler* ClientHandler::Create(Server* server, tcp::socket socket, uint32_t id)
+ClientHandlerSPtr ClientHandler::Create(
+    boost::asio::ip::tcp::socket socket,
+    uint32_t id,
+    OnDataReceivedCallback cb_OnDataReceived,
+    OnDataReceivedErrorCallback cb_OnDataReceivedError,
+    OnClientDisconnectedCallback cb_OnClientDisconnected
+)
 {
-    return new ClientHandler(server, std::move(socket), id);
+    return std::make_shared<ClientHandler>(std::move(socket), id, cb_OnDataReceived, cb_OnDataReceivedError, cb_OnClientDisconnected);
 }
 
 // public
@@ -48,19 +59,22 @@ void ClientHandler::ScheduleRead()
             // check if the client disconnected from the server.
             if (ec == boost::asio::error::eof)
             {
-                m_Server->OnClientDisconnected(GetID());
+                m_OnClientDisconnectedCallback(GetID());
+                //m_Server->OnClientDisconnected(GetID());
                 return;
             }
 
             // check if any errorneous data(according to boost::asio) is received from the client.
             if (ec)
             {
-                m_Server->OnDataReceivedError(GetID(), ec);
+                m_OnDataReceivedErrorCallback(GetID(), ec);
+                //m_Server->OnDataReceivedError(GetID(), ec);
                 return;
             }
 
             m_BytesRead = bytesRead;
-            m_Server->OnDataReceived(GetID());
+            m_OnDataReceivedCallback(GetID());
+            //m_Server->OnDataReceived(GetID());
 
             /* Assign the context with another read task. */
             ScheduleRead();
