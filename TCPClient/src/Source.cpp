@@ -51,8 +51,60 @@ std::string read_some(tcp::socket& socket)
     -   parsing the response
 */
 
+
+#include "TCPClient.h"
+
+class TestClient : public net::tcp::Client
+{
+public:
+    TestClient() {}
+
+    virtual bool OnConnected() override
+    {
+        printf("\nConnected to the Server : %s, %d", GetServerHostname().c_str(), GetPort());
+        return true;
+    }
+
+    virtual void OnConnectionError(const std::string& errorMessage)
+    {
+        printf("\nError Connecting to Server : %s", errorMessage.c_str());
+    }
+
+    virtual bool OnDataReceived(
+        const std::shared_ptr<std::vector<uint8_t>>& buffer, 
+        std::size_t bytesRead) override
+    { 
+        auto b = *buffer.get();
+        std::string data(b.begin(), b.begin() + bytesRead);
+        printf("\nFrom Server : %s", data.c_str());
+        return true; 
+    }
+
+    virtual void OnDataReceivedError(const std::string& errorMessage) override 
+    { 
+        printf("\nError occured while reading data : %s", errorMessage.c_str());
+    }
+
+    virtual void OnDisconnection() override
+    {
+        printf("\nDisconnected from the server.");
+    }
+
+};
+
+int test()
+{
+    TestClient client;
+    client.AsyncConnect("127.0.0.1", 8080);
+    client.Wait();
+
+    return 0;
+}
+
 int main(int argc, char* argv[])
 {
+    return test();
+
     try
     {
 

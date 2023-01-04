@@ -11,6 +11,13 @@ using OnDataReceivedCallback = std::function<void(ClientID)>;
 using OnClientDisconnectedCallback = std::function<void(ClientID)>;
 using OnDataReceivedErrorCallback = std::function<void(ClientID, const boost::system::error_code&)>;
 
+/**
+* This class gives a basic implementation of a TCP Server.
+* It supports Synchronous and Asynchronous Read/Write operations.
+* 
+* Override this class to give your own implementations to the relevant member functions.
+* 
+*/
 class Server : public std::enable_shared_from_this<Server>
 {
 protected:
