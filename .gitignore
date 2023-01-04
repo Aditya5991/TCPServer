@@ -1,5 +1,6 @@
 /.vs
 /x64
-/Client/x64
-/TCPServer/x64
 /TestServer/x64
+/TCPClient/x64
+/TCPServer/x64
+/TCPCommon/x64
