@@ -67,6 +67,42 @@ public:
     bool AsyncRead();
 
     /**
+    * This function start an async task to write data to the server.
+    * 
+    * @param [in] message
+    *       Message to be written to the server in the form of std::string.
+    */
+    void AsyncWrite(const std::string& message);
+
+    /**
+    * This function start an async task to write data to the server.
+    *
+    * @param [in] buffer
+    *       Data to be written to the server in the form of byte stream.
+    * 
+    * @param [in] bytesToWrite
+    *       Number of bytes from the 'buffer' to be written to the server.
+    *       If 0, then the whole buffer will be written to the server.
+    */
+    void AsyncWrite(const std::vector<uint8_t>& buffer, std::size_t bytesToWrite = 0);
+
+    /**
+    * This function will be called if boost::asio detects any error while writing data to the server.
+    * 
+    * @param [in] errorMessage
+    *       Error Message provided by boost::asio.
+    */
+    virtual void OnDataWritingError(const std::string& errorMessage) {}
+
+    /**
+    * This function will be called when data is successfully written to the server.
+    * 
+    * @param [in] bytesWritten
+    *       The number of bytes written to the server.
+    */
+    virtual void OnDataWritten(std::size_t bytesWritten) {}
+
+    /**
     * This is function is called when any data is received from the server.
     * 
     * @param [in] buffer
@@ -78,7 +114,8 @@ public:
     * @return
     *       True, always for now.
     */
-    virtual bool OnDataReceived(const std::shared_ptr<std::vector<uint8_t>>& buffer, std::size_t bytesRead) { (void)buffer; (void)bytesRead; return false; }
+    virtual bool OnDataReceived(const std::shared_ptr<const std::vector<uint8_t>>& buffer, std::size_t bytesRead) 
+    { (void)buffer; (void)bytesRead; return false; }
 
     /**
     * This function is called when boost::asio says that and error has occurred while reading data from the server.
@@ -105,7 +142,7 @@ public:
     const std::string& GetServerHostname() const { return m_ServerHostname; }
 
     /**
-    * Getter for Server Port 
+    * Getter for Server Port.
     */
     uint16_t GetPort() const { return m_Port; }
 
@@ -125,9 +162,6 @@ private:
 
     /* Thread on which the asynchronous task will be performed by the io_context */
     std::thread                         m_ContextThread;
-
-    /*  */
-    boost::asio::ip::tcp::endpoint      m_ServerEndpoint;
 
     /* Hostname of the server that the client will connect to. */
     std::string                         m_ServerHostname;
