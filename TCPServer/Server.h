@@ -247,22 +247,12 @@ public:
     *
     * @params [in] buffer
     *       Bytes of data to be written to the socket.
-    */
-    void AsyncWrite(ClientID ID, const std::vector<uint8_t>& buffer);
-
-    /**
-    * Asynchronous function to write data through a client handler pointer.
-    *
-    * @params [in] ID
-    *       ID of the client to write the data to.
-    *
-    * @params [in] buffer
-    *       Bytes of data to be written to the socket.
     *
     * @params [in] numBytesToWrite
     *       Number of bytes of data to be written to the socket from the 'buffer'.
+    *       If 0, the whole buffer will be written to the client.
     */
-    void AsyncWrite(ClientID ID, const std::vector<uint8_t>& buffer, std::size_t numBytesToWrite);
+    void AsyncWrite(ClientID ID, const std::vector<uint8_t>& buffer, std::size_t numBytesToWrite = 0);
 
     /**
     * This function makes the main thread wait, till boost::asio::io_context runs out of jobs to perform.

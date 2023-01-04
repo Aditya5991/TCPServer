@@ -205,17 +205,12 @@ void Server::AsyncWrite(ClientID ID, const std::string& str)
 // public
 void Server::AsyncWrite(
     ClientID ID, 
-    const std::vector<uint8_t>& buffer)
-{
-    AsyncWrite(ID, buffer, buffer.size());
-}
-
-// public
-void Server::AsyncWrite(
-    ClientID ID, 
     const std::vector<uint8_t>& buffer, 
     std::size_t numBytesToWrite)
 {
+    if (numBytesToWrite == 0)
+        numBytesToWrite = buffer.size();
+
     ClientHandlerSPtr client = m_ClientHandlers[ID];
     client->ScheduleWrite(buffer, numBytesToWrite);
 }
