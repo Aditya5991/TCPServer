@@ -1,6 +1,7 @@
 #pragma once
 
-#include <boost/asio.hpp>
+#include <string>
+#include <vector>
 #include <functional>
 #include <thread>
 #include <mutex>
@@ -13,8 +14,6 @@
 
 #define BEGIN_NAMESPACE_TCP     BEGIN_NAMESPACE_NET namespace tcp {
 #define END_NAMESPACE_TCP       END_NAMESPACE_NET   }
-
-using boost::asio::ip::tcp;
 
 BEGIN_NAMESPACE_TCP
 

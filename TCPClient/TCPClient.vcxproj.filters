@@ -14,26 +14,18 @@
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
     <Filter Include="Source Files\src">
-      <UniqueIdentifier>{139eda5e-5d04-4222-b7a9-d308c95d6ea5}</UniqueIdentifier>
+      <UniqueIdentifier>{47678785-4b8b-413e-bd33-8665c90c7b93}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ClientHandler.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="IOBuffer.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Server.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="src\ClientHandler.cpp">
+    <ClCompile Include="src\Source.cpp">
       <Filter>Source Files\src</Filter>
     </ClCompile>
-    <ClCompile Include="src\Server.cpp">
+    <ClCompile Include="src\TCPClient.cpp">
       <Filter>Source Files\src</Filter>
+    </ClCompile>
+    <ClCompile Include="TCPClient.h">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

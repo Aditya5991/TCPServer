@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Common.h"
-
+#include "TCPCommon/Common.h"
+#include <boost/asio.hpp>
 
 namespace net { class IOBuffer; }
 

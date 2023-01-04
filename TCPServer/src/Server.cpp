@@ -10,8 +10,6 @@
 
 using boost::asio::ip::tcp;
 
-#define CRLF "\r\n"
-
 BEGIN_NAMESPACE_TCP
 
 // public
