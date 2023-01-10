@@ -131,7 +131,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="ClientHandler.h" />
-    <ClInclude Include="IOBuffer.h" />
     <ClInclude Include="Server.h" />
   </ItemGroup>
   <ItemGroup>

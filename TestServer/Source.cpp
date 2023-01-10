@@ -1,6 +1,6 @@
 #include "TCPServer/Server.h"
 #include "TCPServer/ClientHandler.h"
-#include "TCPServer/IOBuffer.h"
+#include "TCPCommon/IOBuffer.h"
 #include <string>
 
 class TestServer : public net::tcp::Server
@@ -72,13 +72,8 @@ public:
 
 int main()
 {
-    //TestServer server(8080);
-    //server.Start();
-    //server.Wait();
-
-    std::shared_ptr<TestServer> server = std::make_shared<TestServer>(8080);
-    server->Start();
-    server->Wait();
-
+    TestServer server(8080);
+    server.Start();
+    server.Wait();
     return 0;
 }

@@ -21,9 +21,6 @@
     <ClInclude Include="ClientHandler.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="IOBuffer.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="Server.h">
       <Filter>Source Files</Filter>
     </ClInclude>
