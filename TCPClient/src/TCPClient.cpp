@@ -10,7 +10,6 @@ Client::Client()
 {
 }
 
-
 // public
 bool Client::AsyncConnect(
     const std::string& serverHostname, 
@@ -19,24 +18,32 @@ bool Client::AsyncConnect(
     m_ServerHostname = serverHostname;
     m_Port = port;
 
-    boost::asio::ip::tcp::endpoint serverEndpoint = { boost::asio::ip::address::from_string(GetServerHostname()), GetPort() };
-    /* Add a task for connecting to the server before starting the Context Thread. */
-    GetSocket().async_connect(serverEndpoint,
-        [this](const boost::system::error_code& ec)
-        {
-            if (ec)
+    try
+    {
+        boost::asio::ip::tcp::resolver resolver(GetIOContext());
+        boost::asio::ip::tcp::resolver::query query(GetServerHostname(), std::to_string(GetPort()));
+        boost::asio::ip::tcp::endpoint serverEndpoint = *resolver.resolve(query);
+
+        /* Add a task for connecting to the server before starting the Context Thread. */
+        GetSocket().async_connect(serverEndpoint,
+            [this](const boost::system::error_code& ec)
             {
-                OnConnectionError(ec.message());
-                return;
-            }
+                if (ec)
+                {
+                    OnConnectionError(ec.message());
+                    return;
+                }
 
-            /* will call the derived class's function. */
-            if (!OnConnected())
-                return;
-
-            /* Add a async read task to the context. */
-            AsyncRead();
-        });
+                /* will call the derived class's function. */
+                if (!OnConnected())
+                    return;
+            });
+    }
+    catch (std::exception& e)
+    {
+        printf("\n%s", e.what());
+        return false;
+    }
 
     GetContextThread() = std::thread([this]() {GetIOContext().run(); });
 
@@ -44,11 +51,11 @@ bool Client::AsyncConnect(
 }
 
 // public
-bool Client::AsyncRead()
+bool Client::AsyncRead(OnDataReceivedCallback callback)
 {
     std::shared_ptr<std::vector<uint8_t>> buffer = std::make_shared<std::vector<uint8_t>>(1024);
     GetSocket().async_read_some(boost::asio::buffer(*buffer),
-        [this, buffer](const boost::system::error_code& ec, std::size_t bytesRead)
+        [this, buffer, callback](const boost::system::error_code& ec, std::size_t bytesRead)
         {
             if (ec == boost::asio::error::eof)
             {
@@ -62,8 +69,10 @@ bool Client::AsyncRead()
                 return;
             }
 
-            if (!OnDataReceived(buffer, bytesRead))
-                return;
+            if (callback)
+                callback(buffer, bytesRead);
+            else
+                OnDataReceived(buffer, bytesRead);
 
             /* Add another async read task to the context. */
             AsyncRead();
@@ -72,21 +81,21 @@ bool Client::AsyncRead()
     return true;
 }
 
-// public 
-void Client::AsyncWrite(const std::string& message)
+// public
+void Client::AsyncWrite(const std::string& message, OnDataWrittenCallback callback)
 {
     std::vector<uint8_t> buffer(message.begin(), message.end());
-    AsyncWrite(buffer);
+    AsyncWrite(buffer, buffer.size(), callback);
 }
 
 // public
-void Client::AsyncWrite(const std::vector<uint8_t>& buffer, std::size_t bytesToWrite)
+void Client::AsyncWrite(const std::vector<uint8_t>& buffer, std::size_t bytesToWrite, OnDataWrittenCallback callback)
 {
     if (bytesToWrite == 0)
         bytesToWrite = buffer.size();
 
     GetSocket().async_write_some(boost::asio::buffer(buffer.data(), bytesToWrite),
-        [this](const boost::system::error_code& ec, std::size_t bytesWritten)
+        [this, callback](const boost::system::error_code& ec, std::size_t bytesWritten)
         {
             if (ec)
             {
@@ -94,7 +103,10 @@ void Client::AsyncWrite(const std::vector<uint8_t>& buffer, std::size_t bytesToW
                 return;
             }
 
-            OnDataWritten(bytesWritten);
+            if (callback)
+                callback(bytesWritten);
+            else
+                OnDataWritten(bytesWritten);
         });
 }
 

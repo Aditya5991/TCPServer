@@ -108,7 +108,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir);$(ProjectDir);$(SolutionDir)includes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <DisableSpecificWarnings>5105;5104</DisableSpecificWarnings>
+      <DisableSpecificWarnings>5105;5104;5260</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -136,6 +136,10 @@
     <ClCompile Include="src\Source.cpp" />
     <ClCompile Include="src\TCPClient.cpp" />
     <ClCompile Include="TCPClient.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="SimpleTCPClient.h" />
+    <ClInclude Include="SMTPTestClient.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

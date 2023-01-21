@@ -7,6 +7,10 @@
 BEGIN_NAMESPACE_TCP
 
 
+using OnDataReceivedCallback = std::function<bool(const std::shared_ptr<const std::vector<uint8_t>>&, std::size_t)>;
+using OnDataWrittenCallback = std::function<bool(std::size_t)>;
+
+
 /**
 * This class gives a basic implementation of a TCP Client.
 * It supports Synchronous and Asynchronous Read/Write operations.
@@ -61,18 +65,27 @@ public:
     /**
     * This function starts an asynchronous task to read data from the server.
     * 
+    * @param [in] callback
+    *       If not nullptr, this callback() will be called on receiving any data.
+    *       If nullptr, OnDataReceived() will be called on receiving any data.
+    * 
     * @return
     *       True, always for now.
     */
-    bool AsyncRead();
+    bool AsyncRead(OnDataReceivedCallback callback = nullptr);
+
 
     /**
     * This function start an async task to write data to the server.
     * 
     * @param [in] message
     *       Message to be written to the server in the form of std::string.
+
+    * @param [in] callback
+    *       If not nullptr, this callback() will be called after writing the data is completed.
+    *       If nullptr, OnDataWritten() will be called after writing the data is completed.
     */
-    void AsyncWrite(const std::string& message);
+    void AsyncWrite(const std::string& message, OnDataWrittenCallback callback = nullptr);
 
     /**
     * This function start an async task to write data to the server.
@@ -83,8 +96,13 @@ public:
     * @param [in] bytesToWrite
     *       Number of bytes from the 'buffer' to be written to the server.
     *       If 0, then the whole buffer will be written to the server.
+    * 
+    * @param [in] callback
+    *       If not nullptr, this callback() will be called after writing the data is completed.
+    *       If nullptr, OnDataWritten() will be called after writing the data is completed.
+    *
     */
-    void AsyncWrite(const std::vector<uint8_t>& buffer, std::size_t bytesToWrite = 0);
+    void AsyncWrite(const std::vector<uint8_t>& buffer, std::size_t bytesToWrite = 0, OnDataWrittenCallback callback = nullptr);
 
     /**
     * This function will be called if boost::asio detects any error while writing data to the server.
