@@ -28,7 +28,7 @@ public:
         std::vector<uint8_t> IDMessageBuffer(IDMessage.begin(), IDMessage.end());
         base::MessageClient(newClientID, IDMessageBuffer, IDMessageBuffer.size());
 
-        /* Send Message to all the clients that the new Client has connected. */
+        /* Send Message to all the clients that a new Client has connected. */
         std::string newConnectionMessage
             = std::format("New Client Connected : {}" CRLF, newClientHandle->GetInfoString());
         std::vector<uint8_t> buffer(newConnectionMessage.begin(), newConnectionMessage.end());
@@ -72,7 +72,7 @@ public:
 
 int main()
 {
-    TestServer server(8080);
+    TestServer server(65520);
     server.Start();
     server.Wait();
     return 0;
