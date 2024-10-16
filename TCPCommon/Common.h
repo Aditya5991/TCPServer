@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include <functional>
 #include <thread>
 #include <mutex>
@@ -15,6 +16,9 @@
 #define BEGIN_NAMESPACE_TCP     BEGIN_NAMESPACE_NET namespace tcp {
 #define END_NAMESPACE_TCP       END_NAMESPACE_NET   }
 
+/****************************************************/
+/*					  TCP related					*/
+/****************************************************/
 BEGIN_NAMESPACE_TCP
 
 using ClientID = std::size_t;
@@ -24,6 +28,5 @@ using ServerSPtr = std::shared_ptr<Server>;
 
 class ClientHandler;
 using ClientHandlerSPtr = std::shared_ptr<ClientHandler>;
-
 
 END_NAMESPACE_TCP

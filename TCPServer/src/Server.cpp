@@ -31,6 +31,7 @@ Server::~Server()
 // public
 bool Server::Start()
 {
+    printf("\nStarting Server on port : %d", GetPort());
     // order is important, as the context needs some work to do, else it will end the context thread.
     WaitToAcceptNewConnection();
     m_ContextThread = std::thread([this]()

@@ -104,12 +104,17 @@ void ClientHandler::ScheduleWrite(const std::vector<uint8_t>& buffer, std::size_
         return;
 
     m_Socket.async_write_some(boost::asio::buffer(buffer.data(), bytesToWrite),
-        [this](const boost::system::error_code& ec, std::size_t bytesWritten)
+        [this, buffer](const boost::system::error_code& ec, std::size_t bytesWritten)
         {
             if (ec)
             {
                 printf("\nError Writing to %s.", GetInfoString().c_str());
                 return;
+            }
+            else
+            {
+                std::string message(buffer.begin(), buffer.end());
+                printf("\nMessage Sent to %s. : %s", GetInfoString().c_str(), message.c_str());
             }
         });
 }
